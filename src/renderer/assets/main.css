@@ -56,26 +56,28 @@ body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto auto;
   align-items: center;
-  min-height: 0;
+  column-gap: 6px;
+  min-height: 34px;
 }
 
 .totals {
   display: flex;
   justify-content: flex-end;
-  padding: 4px 6px 4px 2px;
+  padding: 4px 2px;
   grid-column: 2;
   grid-row: 1;
 }
 
 .total-inline {
   display: flex;
-  gap: 6px;
+  gap: 5px;
   align-items: center;
-  padding: 3px 6px;
+  height: 24px;
+  padding: 0 7px;
   border: 1px solid var(--panel-border);
   border-radius: 6px;
   background: var(--panel);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .metric {
@@ -103,7 +105,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 4px 6px 4px 0;
+  padding: 4px 0;
   grid-column: 3;
   grid-row: 1;
 }
@@ -132,15 +134,18 @@ body {
 
 .sidebar-actions button {
   width: 84px;
+  height: 24px;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 4px;
+  align-items: center;
+  gap: 3px;
   border: 1px solid var(--panel-border);
   background: var(--panel-elev-1);
   color: var(--text);
   border-radius: 8px;
-  padding: 2px;
-  font-size: 12px;
+  padding: 1px;
+  font-size: 11px;
+  line-height: 1;
   cursor: pointer;
 }
 
@@ -152,7 +157,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 18px;
+  height: 20px;
   border-radius: 5px;
   background: var(--panel-elev-3);
   color: var(--text-soft);
@@ -161,6 +166,8 @@ body {
 
 .layout-icon svg {
   display: block;
+  width: 12px;
+  height: 12px;
 }
 
 #layout-toggle.is-side-by-side .layout-sbs,
@@ -173,7 +180,9 @@ body {
   display: flex;
   flex-direction: row;
   gap: 0;
-  padding: 0;
+  align-items: center;
+  min-height: 34px;
+  padding: 4px 0 4px 6px;
   overflow-x: auto;
   overflow-y: hidden;
   grid-column: 1;
@@ -194,10 +203,11 @@ body {
   width: auto;
   min-width: max-content;
   flex: 0 0 auto;
-  padding: 4px 5px;
+  height: 24px;
+  padding: 0 6px;
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: 5px;
+  gap: 4px;
   align-items: center;
   cursor: pointer;
 }
@@ -209,13 +219,13 @@ body {
 
 .file-marker,
 .status-pill {
-  min-width: 16px;
+  min-width: 14px;
   text-align: center;
   font-weight: 700;
   border-radius: 5px;
-  font-size: 10px;
+  font-size: 9px;
   line-height: 1;
-  padding: 3px;
+  padding: 2px;
   color: #0d141b;
 }
 
@@ -236,7 +246,7 @@ body {
 }
 
 .file-path {
-  font-size: 10px;
+  font-size: 11px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -245,7 +255,7 @@ body {
 .file-delta {
   display: inline-flex;
   gap: 4px;
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .diff-scroller {
