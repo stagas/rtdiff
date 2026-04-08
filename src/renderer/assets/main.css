@@ -58,6 +58,7 @@ body {
   align-items: center;
   column-gap: 6px;
   min-height: 34px;
+  -webkit-app-region: drag;
 }
 
 .totals {
@@ -194,6 +195,7 @@ body {
 
 #branch-name {
   user-select: text;
+  -webkit-app-region: no-drag;
 }
 
 #layout-toggle.is-side-by-side .layout-sbs,
@@ -236,6 +238,13 @@ body {
   gap: 4px;
   align-items: center;
   cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.sidebar-commit button,
+.sidebar-actions button,
+.total-inline {
+  -webkit-app-region: no-drag;
 }
 
 .file-item.active {
