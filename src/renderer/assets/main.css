@@ -132,6 +132,11 @@ body {
   background: var(--panel-elev-2);
 }
 
+.sidebar-commit button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .sidebar-actions button {
   width: 84px;
   height: 24px;

@@ -175,6 +175,7 @@ async function boot(): Promise<void> {
 function applySnapshot(nextSnapshot: DiffSnapshot): void {
   snapshot = nextSnapshot
   updateSummary(nextSnapshot)
+  syncCommitAvailability(nextSnapshot)
 
   if (nextSnapshot.repoState !== 'ok') {
     renderNotReady(nextSnapshot)
@@ -222,6 +223,11 @@ function updateSummary(nextSnapshot: DiffSnapshot): void {
   branchName.textContent = nextSnapshot.branchName ?? 'unknown'
   totalAdded.textContent = `+${nextSnapshot.totals.added}`
   totalRemoved.textContent = `-${nextSnapshot.totals.removed}`
+}
+
+function syncCommitAvailability(nextSnapshot: DiffSnapshot): void {
+  const canCommit = nextSnapshot.repoState === 'ok' && nextSnapshot.files.length > 0
+  commitButton.disabled = !canCommit
 }
 
 function renderNotReady(nextSnapshot: DiffSnapshot): void {
