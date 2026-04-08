@@ -434,6 +434,10 @@ body {
   padding: 12px;
 }
 
+.empty-state strong {
+  font-weight: 700;
+}
+
 @media (max-width: 760px) {
   .total-inline {
     gap: 5px;
