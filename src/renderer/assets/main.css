@@ -2,8 +2,17 @@
 
 :root {
   --bg: #1e1f22;
-  --panel: #26282c;
-  --panel-border: #33363b;
+  --panel: #25282d;
+  --panel-border: #363b43;
+  --panel-elev-1: #2a2e34;
+  --panel-elev-2: #2f343c;
+  --panel-elev-3: #343a44;
+  --panel-muted: #20242a;
+  --separator: #3a414b;
+  --scroll-thumb: #59616d;
+  --scroll-thumb-hover: #69727f;
+  --accent: #6f95bf;
+  --accent-strong: #7da6d4;
   --text: #d8d9dc;
   --text-soft: #a5a8ad;
   --green: #73b67a;
@@ -95,8 +104,8 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 4px;
-  border: 1px solid #3a3f46;
-  background: #2a2d31;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-elev-1);
   color: var(--text);
   border-radius: 8px;
   padding: 2px;
@@ -105,7 +114,7 @@ body {
 }
 
 .sidebar-actions button:hover {
-  background: #31353a;
+  background: var(--panel-elev-2);
 }
 
 .layout-icon {
@@ -114,8 +123,8 @@ body {
   justify-content: center;
   height: 18px;
   border-radius: 5px;
-  background: #343942;
-  color: #c0c4ca;
+  background: var(--panel-elev-3);
+  color: var(--text-soft);
   line-height: 1;
 }
 
@@ -125,8 +134,8 @@ body {
 
 #layout-toggle.is-side-by-side .layout-sbs,
 #layout-toggle.is-inline .layout-inline {
-  background: #4d5d70;
-  color: #f0f2f5;
+  background: var(--accent);
+  color: #eef4fb;
 }
 
 .file-list {
@@ -163,8 +172,8 @@ body {
 }
 
 .file-item.active {
-  border-color: #4f89c0;
-  box-shadow: inset 0 0 0 1px #4f89c0;
+  border-color: var(--accent-strong);
+  box-shadow: inset 0 0 0 1px var(--accent-strong);
 }
 
 .file-marker,
@@ -226,7 +235,7 @@ body {
 .diff-section {
   border: none;
   border-radius: 0;
-  background: #222429;
+  background: var(--panel-elev-1);
   overflow: hidden;
   min-width: 0;
 }
@@ -242,11 +251,11 @@ body {
   gap: 10px;
   padding: 10px 12px;
   border-bottom: none;
-  background: #2b2f36;
+  background: var(--panel-elev-2);
 }
 
 .diff-section + .diff-section {
-  border-top: 1px solid #3a3e45;
+  border-top: 1px solid var(--separator);
 }
 
 .diff-title {
@@ -267,7 +276,7 @@ body {
   display: grid;
   gap: 8px;
   padding: 0;
-  background: #1f2125;
+  background: var(--panel-muted);
   min-width: 0;
 }
 
@@ -275,12 +284,12 @@ body {
   border: none;
   border-radius: 0;
   overflow: hidden;
-  background: #23262b;
+  background: var(--panel-elev-1);
   min-width: 0;
 }
 
 .diff-hunk + .diff-hunk {
-  border-top: 1px solid #3a3e45;
+  border-top: 1px solid var(--separator);
 }
 
 .diff-hunk-scroll {
@@ -326,7 +335,7 @@ body {
 }
 
 .diff-sbs-pane:first-child {
-  border-right: 1px solid #3a3e45;
+  border-right: 1px solid var(--separator);
 }
 
 .diff-sbs-table {
@@ -359,12 +368,12 @@ body {
 
 .line-marker,
 .line-no {
-  color: #9aa0a9;
+  color: var(--text-soft);
   font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Menlo, Consolas, monospace;
   font-size: 11px;
   line-height: 1.1;
   padding: 0 8px;
-  border-right: 1px solid #3a3e45;
+  border-right: 1px solid var(--separator);
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -389,7 +398,7 @@ body {
 .diff-scroller,
 .diff-hunk-scroll,
 .diff-sbs-pane {
-  scrollbar-color: #565c66 #23262b;
+  scrollbar-color: var(--scroll-thumb) var(--panel-elev-1);
   scrollbar-width: thin;
 }
 
@@ -403,21 +412,21 @@ body {
 .diff-scroller::-webkit-scrollbar-track,
 .diff-hunk-scroll::-webkit-scrollbar-track,
 .diff-sbs-pane::-webkit-scrollbar-track {
-  background: #23262b;
+  background: var(--panel-elev-1);
 }
 
 .diff-scroller::-webkit-scrollbar-thumb,
 .diff-hunk-scroll::-webkit-scrollbar-thumb,
 .diff-sbs-pane::-webkit-scrollbar-thumb {
-  background: #565c66;
+  background: var(--scroll-thumb);
   border-radius: 999px;
-  border: 2px solid #23262b;
+  border: 2px solid var(--panel-elev-1);
 }
 
 .diff-scroller::-webkit-scrollbar-thumb:hover,
 .diff-hunk-scroll::-webkit-scrollbar-thumb:hover,
 .diff-sbs-pane::-webkit-scrollbar-thumb:hover {
-  background: #6a727e;
+  background: var(--scroll-thumb-hover);
 }
 
 .binary-placeholder {
@@ -429,8 +438,8 @@ body {
 .empty-state {
   border: none;
   border-radius: 0;
-  background: #262a30;
-  color: #b7bbc2;
+  background: var(--panel-elev-1);
+  color: var(--text-soft);
   padding: 12px;
 }
 
