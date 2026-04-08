@@ -15,6 +15,7 @@ const DIFF_UPDATE_CHANNEL = 'diff:update'
 const DIFF_SUBSCRIBE_CHANNEL = 'diff:subscribe'
 const DIFF_GET_SNAPSHOT_CHANNEL = 'diff:getSnapshot'
 const DIFF_COMMIT_CHANNEL = 'diff:commit'
+const DIFF_GENERATE_COMMIT_MESSAGE_CHANNEL = 'diff:generateCommitMessage'
 
 const BINARY_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.pdf', '.zip', '.gz'])
 
@@ -66,6 +67,88 @@ class DiffService {
       const stderr = error instanceof Error && 'stderr' in error ? String(error.stderr ?? '').trim() : ''
       const messageText = stderr || (error instanceof Error ? error.message : 'Commit failed.')
       return { ok: false, error: messageText }
+    }
+  }
+
+  async generateCommitMessage(): Promise<{ ok: boolean; message?: string; error?: string }> {
+    const repoRoot = this.snapshot.repoRoot ?? (await this.findNearestRepoRoot(this.startDir))
+    if (!repoRoot) {
+      return { ok: false, error: 'Not inside a git repository.' }
+    }
+
+    const apiKey = process.env.OPENROUTER_API_KEY
+    if (!apiKey) {
+      return { ok: false, error: 'OPENROUTER_API_KEY is not set.' }
+    }
+
+    try {
+      const { stdout } = await execFileAsync(
+        'git',
+        ['-C', repoRoot, 'diff', 'HEAD', '--', '.'],
+        { maxBuffer: 10 * 1024 * 1024 }
+      )
+
+      const diffText = stdout.trim()
+      if (!diffText) {
+        return { ok: false, error: 'No changes detected to generate a commit message.' }
+      }
+
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'nvidia/nemotron-3-nano-30b-a3b:free',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a commit message generator. You will be given a list of changes and you will need to generate a commit message for those changes.
+You must follow conventional commits:
+
+type(scope): short description
+
+type is one of:
+- feat
+- fix
+- chore
+- docs
+- style
+- refactor
+- perf
+- test
+
+scope is optional and should be abstract (not file names).
+Do not explain lockfile-only changes.
+Keep the message concise. You may add an optional body after an empty line.`
+            },
+            {
+              role: 'user',
+              content: `Here are the changes:\n\n${diffText}`
+            }
+          ],
+          stream: false
+        })
+      })
+
+      if (!response.ok) {
+        const text = await response.text()
+        return { ok: false, error: text || `Generation failed (${response.status})` }
+      }
+
+      const payload = (await response.json()) as {
+        choices?: Array<{ message?: { content?: string } }>
+      }
+      const message = payload.choices?.[0]?.message?.content?.trim()
+      if (!message) {
+        return { ok: false, error: 'No commit message returned by model.' }
+      }
+
+      return { ok: true, message }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to generate commit message.'
+      return { ok: false, error: message }
     }
   }
 
@@ -573,6 +656,13 @@ app.whenReady().then(async () => {
     }
 
     return diffService.commit(message)
+  })
+
+  ipcMain.handle(DIFF_GENERATE_COMMIT_MESSAGE_CHANNEL, async () => {
+    if (!diffService) {
+      return { ok: false, error: 'Diff service unavailable' }
+    }
+    return diffService.generateCommitMessage()
   })
 
   ipcMain.on(DIFF_SUBSCRIBE_CHANNEL, (event) => {

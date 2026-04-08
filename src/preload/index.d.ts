@@ -5,6 +5,7 @@ interface RTDiffAPI {
   getSnapshot: () => Promise<DiffSnapshot>
   onSnapshot: (listener: (snapshot: DiffSnapshot) => void) => () => void
   commit: (message: string) => Promise<{ ok: boolean; error?: string }>
+  generateCommitMessage: () => Promise<{ ok: boolean; message?: string; error?: string }>
 }
 
 declare global {

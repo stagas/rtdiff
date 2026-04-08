@@ -45,6 +45,7 @@ const sectionsScroller = document.getElementById('diff-scroller') as HTMLElement
 const commitModal = document.getElementById('commit-modal') as HTMLElement
 const commitBackdrop = document.getElementById('commit-backdrop') as HTMLElement
 const commitMessage = document.getElementById('commit-message') as HTMLTextAreaElement
+const commitGenerate = document.getElementById('commit-generate') as HTMLButtonElement
 const commitConfirm = document.getElementById('commit-confirm') as HTMLButtonElement
 const commitCancel = document.getElementById('commit-cancel') as HTMLButtonElement
 const commitError = document.getElementById('commit-error') as HTMLElement
@@ -64,6 +65,9 @@ function init(): void {
   commitButton.addEventListener('click', openCommitModal)
   commitBackdrop.addEventListener('click', closeCommitModal)
   commitCancel.addEventListener('click', closeCommitModal)
+  commitGenerate.addEventListener('click', () => {
+    void generateCommitMessage()
+  })
   commitConfirm.addEventListener('click', () => {
     void submitCommit()
   })
@@ -88,6 +92,7 @@ function openCommitModal(): void {
   commitMessage.value = ''
   commitConfirm.disabled = false
   commitCancel.disabled = false
+  commitGenerate.disabled = false
   requestAnimationFrame(() => {
     commitMessage.focus()
   })
@@ -107,6 +112,7 @@ async function submitCommit(): Promise<void> {
 
   commitConfirm.disabled = true
   commitCancel.disabled = true
+  commitGenerate.disabled = true
   commitError.hidden = true
   commitError.textContent = ''
 
@@ -114,12 +120,33 @@ async function submitCommit(): Promise<void> {
   if (!result.ok) {
     commitConfirm.disabled = false
     commitCancel.disabled = false
+    commitGenerate.disabled = false
     commitError.hidden = false
     commitError.textContent = result.error ?? 'Commit failed.'
     return
   }
 
   closeCommitModal()
+}
+
+async function generateCommitMessage(): Promise<void> {
+  commitGenerate.disabled = true
+  commitConfirm.disabled = true
+  commitError.hidden = true
+  commitError.textContent = ''
+
+  const result = await window.api.generateCommitMessage()
+  if (!result.ok || !result.message) {
+    commitGenerate.disabled = false
+    commitConfirm.disabled = false
+    commitError.hidden = false
+    commitError.textContent = result.error ?? 'Failed to generate commit message.'
+    return
+  }
+
+  commitMessage.value = result.message
+  commitGenerate.disabled = false
+  commitConfirm.disabled = false
 }
 
 async function boot(): Promise<void> {

@@ -5,6 +5,8 @@ import type { DiffSnapshot } from '../shared/diff'
 const api = {
   getSnapshot: (): Promise<DiffSnapshot> => ipcRenderer.invoke('diff:getSnapshot'),
   commit: (message: string): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke('diff:commit', message),
+  generateCommitMessage: (): Promise<{ ok: boolean; message?: string; error?: string }> =>
+    ipcRenderer.invoke('diff:generateCommitMessage'),
   onSnapshot: (listener: (snapshot: DiffSnapshot) => void): (() => void) => {
     const wrapped = (_event: Electron.IpcRendererEvent, snapshot: DiffSnapshot): void => {
       listener(snapshot)

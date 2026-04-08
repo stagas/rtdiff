@@ -513,6 +513,33 @@ body {
   font-weight: 600;
 }
 
+.commit-tools {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.commit-tools button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-elev-2);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.commit-tools button:hover {
+  background: var(--panel-elev-3);
+}
+
+.commit-tools button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 .commit-dialog textarea {
   width: 100%;
   resize: vertical;
