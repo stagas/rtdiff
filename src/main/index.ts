@@ -29,7 +29,6 @@ class DiffService {
   private gitMetaWatcher: FSWatcher | null = null
   private subscribers = new Set<number>()
   private refreshTimer: NodeJS.Timeout | null = null
-  private pollingTimer: NodeJS.Timeout | null = null
   private refreshing = false
 
   constructor(private readonly startDir: string) {}
@@ -37,7 +36,6 @@ class DiffService {
   async init(): Promise<void> {
     await this.refreshNow()
     this.configureWatcher()
-    this.startPolling()
   }
 
   async getSnapshot(): Promise<DiffSnapshot> {
@@ -81,10 +79,6 @@ class DiffService {
       void this.gitMetaWatcher.close()
       this.gitMetaWatcher = null
     }
-    if (this.pollingTimer) {
-      clearInterval(this.pollingTimer)
-      this.pollingTimer = null
-    }
   }
 
   private configureWatcher(): void {
@@ -103,7 +97,6 @@ class DiffService {
     this.watcher = chokidar.watch(watchRoot, {
       ignoreInitial: true,
       ignored: [
-        /(^|[/\\])\.git([/\\]|$)/,
         /(^|[/\\])node_modules([/\\]|$)/,
         /(^|[/\\])dist([/\\]|$)/,
         /(^|[/\\])out([/\\]|$)/,
@@ -132,8 +125,9 @@ class DiffService {
       [
         join(gitDir, 'HEAD'),
         join(gitDir, 'index'),
-        join(gitDir, 'refs', '**', '*'),
-        join(gitDir, 'logs', 'HEAD')
+        join(gitDir, 'packed-refs'),
+        join(gitDir, 'refs'),
+        join(gitDir, 'logs')
       ],
       {
         ignoreInitial: true
@@ -172,18 +166,6 @@ class DiffService {
     } finally {
       this.refreshing = false
     }
-  }
-
-  private startPolling(): void {
-    if (this.pollingTimer) {
-      clearInterval(this.pollingTimer)
-      this.pollingTimer = null
-    }
-
-    // Reliability fallback: some git workflows do not emit consistent fs events.
-    this.pollingTimer = setInterval(() => {
-      this.scheduleRefresh()
-    }, 1500)
   }
 
   private async buildSnapshot(): Promise<DiffSnapshot> {
