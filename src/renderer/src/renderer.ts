@@ -125,8 +125,8 @@ function applySnapshot(nextSnapshot: DiffSnapshot): void {
 
 function updateSummary(nextSnapshot: DiffSnapshot): void {
   totalFiles.textContent = String(nextSnapshot.totals.files)
-  totalAdded.textContent = String(nextSnapshot.totals.added)
-  totalRemoved.textContent = String(nextSnapshot.totals.removed)
+  totalAdded.textContent = `+${nextSnapshot.totals.added}`
+  totalRemoved.textContent = `-${nextSnapshot.totals.removed}`
 }
 
 function renderNotReady(nextSnapshot: DiffSnapshot): void {

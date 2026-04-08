@@ -1,27 +1,36 @@
 @import './base.css';
 
 :root {
-  --bg: #101418;
-  --panel: #1b232b;
-  --panel-border: #2b3642;
-  --text: #d9e1ea;
-  --text-soft: #97a8ba;
-  --green: #6ec46e;
-  --red: #f17a7a;
-  --blue: #78b4f6;
-  --yellow: #f2c572;
-  --row-context: #111a22;
-  --row-added: #0f2a1e;
-  --row-removed: #341b1b;
-  --row-modified: #1e2538;
+  --bg: #1e1f22;
+  --panel: #26282c;
+  --panel-border: #33363b;
+  --text: #d8d9dc;
+  --text-soft: #a5a8ad;
+  --green: #73b67a;
+  --red: #c77c7c;
+  --blue: #7ea1c9;
+  --yellow: #bda56d;
+  --row-context: #24262a;
+  --row-added: #233127;
+  --row-removed: #322427;
+  --row-modified: #2a2f38;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background: radial-gradient(circle at top right, #233041 0%, var(--bg) 45%);
+  background: var(--bg);
   color: var(--text);
   overflow: hidden;
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Ubuntu,
+    'Helvetica Neue',
+    Arial,
+    sans-serif;
 }
 
 .layout {
@@ -32,7 +41,7 @@ body {
 
 .sidebar {
   border-right: 1px solid var(--panel-border);
-  background: linear-gradient(180deg, #151d26, #121820);
+  background: var(--panel);
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -77,9 +86,9 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 4px;
-  border: 1px solid #365778;
-  background: #162f44;
-  color: #cce6ff;
+  border: 1px solid #3a3f46;
+  background: #2a2d31;
+  color: var(--text);
   border-radius: 8px;
   padding: 2px;
   font-size: 12px;
@@ -87,7 +96,7 @@ body {
 }
 
 .sidebar-actions button:hover {
-  background: #1b3e59;
+  background: #31353a;
 }
 
 .layout-icon {
@@ -96,17 +105,19 @@ body {
   justify-content: center;
   height: 18px;
   border-radius: 5px;
-  background: #24445f;
-  color: #b7dbff;
-  font-size: 11px;
+  background: #343942;
+  color: #c0c4ca;
   line-height: 1;
+}
+
+.layout-icon svg {
+  display: block;
 }
 
 #layout-toggle.is-side-by-side .layout-sbs,
 #layout-toggle.is-inline .layout-inline {
-  background: #4f89c0;
-  color: #0f1d2b;
-  font-weight: 700;
+  background: #4d5d70;
+  color: #f0f2f5;
 }
 
 .file-list {
@@ -191,12 +202,12 @@ body {
 .diff-section {
   border: 1px solid var(--panel-border);
   border-radius: 12px;
-  background: #121820;
+  background: #222429;
   overflow: hidden;
 }
 
 .diff-section.active {
-  border-color: #4f89c0;
+  border-color: #596274;
 }
 
 .diff-header {
@@ -226,14 +237,14 @@ body {
   display: grid;
   gap: 10px;
   padding: 10px;
-  background: #10161d;
+  background: #1f2125;
 }
 
 .diff-hunk {
-  border: 1px solid #2a3949;
+  border: 1px solid #363a41;
   border-radius: 10px;
   overflow: hidden;
-  background: #0f151c;
+  background: #23262b;
 }
 
 .diff-hunk-scroll {
@@ -276,7 +287,7 @@ body {
 }
 
 .diff-sbs-pane:first-child {
-  border-right: 1px solid #263547;
+  border-right: 1px solid #3a3e45;
 }
 
 .diff-sbs-table {
@@ -309,12 +320,12 @@ body {
 
 .line-marker,
 .line-no {
-  color: #8ca0b5;
+  color: #9aa0a9;
   font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Menlo, Consolas, monospace;
   font-size: 11px;
   line-height: 1.1;
   padding: 0 8px;
-  border-right: 1px solid #263547;
+  border-right: 1px solid #3a3e45;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -340,7 +351,7 @@ body {
 .diff-scroller,
 .diff-hunk-scroll,
 .diff-sbs-pane {
-  scrollbar-color: #3a4a5a #121a22;
+  scrollbar-color: #565c66 #23262b;
   scrollbar-width: thin;
 }
 
@@ -356,23 +367,23 @@ body {
 .diff-scroller::-webkit-scrollbar-track,
 .diff-hunk-scroll::-webkit-scrollbar-track,
 .diff-sbs-pane::-webkit-scrollbar-track {
-  background: #121a22;
+  background: #23262b;
 }
 
 .file-list::-webkit-scrollbar-thumb,
 .diff-scroller::-webkit-scrollbar-thumb,
 .diff-hunk-scroll::-webkit-scrollbar-thumb,
 .diff-sbs-pane::-webkit-scrollbar-thumb {
-  background: #3a4a5a;
+  background: #565c66;
   border-radius: 999px;
-  border: 2px solid #121a22;
+  border: 2px solid #23262b;
 }
 
 .file-list::-webkit-scrollbar-thumb:hover,
 .diff-scroller::-webkit-scrollbar-thumb:hover,
 .diff-hunk-scroll::-webkit-scrollbar-thumb:hover,
 .diff-sbs-pane::-webkit-scrollbar-thumb:hover {
-  background: #4a5e72;
+  background: #6a727e;
 }
 
 .binary-placeholder {
@@ -382,10 +393,10 @@ body {
 }
 
 .empty-state {
-  border: 1px dashed #506173;
+  border: 1px dashed #4b5058;
   border-radius: 12px;
-  background: #131b23;
-  color: #b2c1d1;
+  background: #262a30;
+  color: #b7bbc2;
   padding: 20px;
 }
 

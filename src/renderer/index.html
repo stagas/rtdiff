@@ -14,7 +14,7 @@
       <aside class="sidebar">
         <div class="totals">
           <div class="total-inline">
-            <span class="metric"><strong id="total-files">0</strong></span>
+            <span class="metric">Files:&nbsp;<strong id="total-files">0</strong></span>
             <span class="metric"><strong id="total-added" class="added">0</strong></span>
             <span class="metric"><strong id="total-removed" class="removed">0</strong></span>
           </div>
@@ -22,8 +22,19 @@
 
         <div class="sidebar-actions">
           <button id="layout-toggle" type="button" aria-label="Toggle diff layout mode">
-            <span class="layout-icon layout-sbs" aria-hidden="true">▥</span>
-            <span class="layout-icon layout-inline" aria-hidden="true">☰</span>
+            <span class="layout-icon layout-sbs" aria-hidden="true">
+              <svg viewBox="0 0 16 16" width="12" height="12" focusable="false" aria-hidden="true">
+                <rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.2" />
+                <line x1="8" y1="2.6" x2="8" y2="13.4" stroke="currentColor" stroke-width="1.2" />
+              </svg>
+            </span>
+            <span class="layout-icon layout-inline" aria-hidden="true">
+              <svg viewBox="0 0 16 16" width="12" height="12" focusable="false" aria-hidden="true">
+                <rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.2" />
+                <line x1="4" y1="6" x2="12" y2="6" stroke="currentColor" stroke-width="1.2" />
+                <line x1="4" y1="10" x2="12" y2="10" stroke="currentColor" stroke-width="1.2" />
+              </svg>
+            </span>
           </button>
         </div>
 
