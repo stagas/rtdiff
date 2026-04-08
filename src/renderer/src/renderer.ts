@@ -34,8 +34,6 @@ let highlighter: Highlighter | null = null
 
 const appRoot = document.getElementById('app') as HTMLElement
 const sidebarList = document.getElementById('file-list') as HTMLElement
-const repoText = document.getElementById('repo-root') as HTMLElement
-const stateText = document.getElementById('repo-state') as HTMLElement
 const totalFiles = document.getElementById('total-files') as HTMLElement
 const totalAdded = document.getElementById('total-added') as HTMLElement
 const totalRemoved = document.getElementById('total-removed') as HTMLElement
@@ -45,9 +43,11 @@ const modeButton = document.getElementById('layout-toggle') as HTMLButtonElement
 const sectionsScroller = document.getElementById('diff-scroller') as HTMLElement
 
 function init(): void {
+  updateLayoutToggle()
+
   modeButton.addEventListener('click', () => {
     layoutMode = layoutMode === 'side-by-side' ? 'inline' : 'side-by-side'
-    modeButton.textContent = layoutMode === 'side-by-side' ? 'Inline View' : 'Side by Side'
+    updateLayoutToggle()
 
     if (snapshot) {
       applySnapshot(snapshot)
@@ -56,6 +56,11 @@ function init(): void {
 
   sectionsScroller.addEventListener('scroll', onScrollActiveSection)
   void boot()
+}
+
+function updateLayoutToggle(): void {
+  modeButton.classList.toggle('is-inline', layoutMode === 'inline')
+  modeButton.classList.toggle('is-side-by-side', layoutMode === 'side-by-side')
 }
 
 async function boot(): Promise<void> {
@@ -120,18 +125,8 @@ function applySnapshot(nextSnapshot: DiffSnapshot): void {
 
 function updateSummary(nextSnapshot: DiffSnapshot): void {
   totalFiles.textContent = String(nextSnapshot.totals.files)
-  totalAdded.textContent = `+${nextSnapshot.totals.added}`
-  totalRemoved.textContent = `-${nextSnapshot.totals.removed}`
-
-  repoText.textContent = nextSnapshot.repoRoot ?? 'No repository found'
-
-  if (nextSnapshot.repoState === 'ok') {
-    stateText.textContent = 'Tracking git changes'
-  } else if (nextSnapshot.repoState === 'not_in_repo') {
-    stateText.textContent = nextSnapshot.message ?? 'Not inside a git repository'
-  } else {
-    stateText.textContent = nextSnapshot.message ?? 'Unable to read git changes'
-  }
+  totalAdded.textContent = String(nextSnapshot.totals.added)
+  totalRemoved.textContent = String(nextSnapshot.totals.removed)
 }
 
 function renderNotReady(nextSnapshot: DiffSnapshot): void {

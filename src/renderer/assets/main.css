@@ -27,7 +27,7 @@ body {
 .layout {
   height: 100vh;
   display: grid;
-  grid-template-columns: 320px 1fr;
+  grid-template-columns: 220px 1fr;
 }
 
 .sidebar {
@@ -38,50 +38,26 @@ body {
   min-height: 0;
 }
 
-.sidebar-top {
-  padding: 18px 16px 10px;
-}
-
-.sidebar-top h1 {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 700;
-}
-
-.repo-state {
-  margin-top: 8px;
-  color: var(--text-soft);
-  font-size: 13px;
-}
-
-.repo-root {
-  margin-top: 4px;
-  color: #7f90a1;
-  font-size: 12px;
-  overflow-wrap: anywhere;
-}
-
 .totals {
-  padding: 10px 16px;
-  display: grid;
-  gap: 8px;
+  padding: 4px 6px;
+  display: block;
 }
 
-.total-card {
+.total-inline {
   display: flex;
-  justify-content: space-between;
+  gap: 6px;
   align-items: center;
-  padding: 8px 10px;
+  padding: 3px 6px;
   border: 1px solid var(--panel-border);
-  border-radius: 10px;
+  border-radius: 6px;
   background: var(--panel);
+  font-size: 10px;
 }
 
-.total-card .label {
-  color: var(--text-soft);
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+.metric {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
 }
 
 .added {
@@ -93,28 +69,50 @@ body {
 }
 
 .sidebar-actions {
-  padding: 8px 16px;
+  padding: 4px 6px;
 }
 
 .sidebar-actions button {
   width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
   border: 1px solid #365778;
-  background: #1a3c58;
+  background: #162f44;
   color: #cce6ff;
   border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 13px;
+  padding: 2px;
+  font-size: 12px;
   cursor: pointer;
 }
 
 .sidebar-actions button:hover {
-  background: #205071;
+  background: #1b3e59;
+}
+
+.layout-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 18px;
+  border-radius: 5px;
+  background: #24445f;
+  color: #b7dbff;
+  font-size: 11px;
+  line-height: 1;
+}
+
+#layout-toggle.is-side-by-side .layout-sbs,
+#layout-toggle.is-inline .layout-inline {
+  background: #4f89c0;
+  color: #0f1d2b;
+  font-weight: 700;
 }
 
 .file-list {
-  padding: 10px;
+  padding: 4px;
   display: grid;
-  gap: 6px;
+  gap: 3px;
   overflow: auto;
 }
 
@@ -122,13 +120,13 @@ body {
   border: 1px solid var(--panel-border);
   background: var(--panel);
   color: var(--text);
-  border-radius: 8px;
+  border-radius: 6px;
   text-align: left;
   width: 100%;
-  padding: 8px;
+  padding: 4px 5px;
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: 8px;
+  gap: 5px;
   align-items: center;
   cursor: pointer;
 }
@@ -140,13 +138,13 @@ body {
 
 .file-marker,
 .status-pill {
-  min-width: 20px;
+  min-width: 16px;
   text-align: center;
   font-weight: 700;
-  border-radius: 6px;
-  font-size: 11px;
+  border-radius: 5px;
+  font-size: 10px;
   line-height: 1;
-  padding: 4px;
+  padding: 3px;
   color: #0d141b;
 }
 
@@ -167,7 +165,7 @@ body {
 }
 
 .file-path {
-  font-size: 12px;
+  font-size: 10px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -175,8 +173,8 @@ body {
 
 .file-delta {
   display: inline-flex;
-  gap: 6px;
-  font-size: 11px;
+  gap: 4px;
+  font-size: 9px;
 }
 
 .diff-scroller {

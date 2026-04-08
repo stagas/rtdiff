@@ -12,29 +12,19 @@
   <body>
     <div id="app" class="layout">
       <aside class="sidebar">
-        <div class="sidebar-top">
-          <h1>RTDiff</h1>
-          <p id="repo-state" class="repo-state">Tracking git changes</p>
-          <p id="repo-root" class="repo-root"></p>
-        </div>
-
         <div class="totals">
-          <div class="total-card">
-            <span class="label">Files</span>
-            <strong id="total-files">0</strong>
-          </div>
-          <div class="total-card">
-            <span class="label">Added</span>
-            <strong id="total-added" class="added">+0</strong>
-          </div>
-          <div class="total-card">
-            <span class="label">Removed</span>
-            <strong id="total-removed" class="removed">-0</strong>
+          <div class="total-inline">
+            <span class="metric"><strong id="total-files">0</strong></span>
+            <span class="metric"><strong id="total-added" class="added">0</strong></span>
+            <span class="metric"><strong id="total-removed" class="removed">0</strong></span>
           </div>
         </div>
 
         <div class="sidebar-actions">
-          <button id="layout-toggle" type="button">Inline View</button>
+          <button id="layout-toggle" type="button" aria-label="Toggle diff layout mode">
+            <span class="layout-icon layout-sbs" aria-hidden="true">▥</span>
+            <span class="layout-icon layout-inline" aria-hidden="true">☰</span>
+          </button>
         </div>
 
         <div id="file-list" class="file-list"></div>

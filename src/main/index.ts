@@ -109,15 +109,43 @@ class DiffService {
     this.watcher.on('error', () => this.scheduleRefresh())
 
     if (repoRoot) {
-      const gitRoot = join(repoRoot, '.git')
-      this.gitMetaWatcher = chokidar.watch(
-        [join(gitRoot, 'HEAD'), join(gitRoot, 'index'), join(gitRoot, 'refs', '**', '*')],
-        {
-          ignoreInitial: true
-        }
-      )
-      this.gitMetaWatcher.on('all', () => this.scheduleRefresh())
-      this.gitMetaWatcher.on('error', () => this.scheduleRefresh())
+      void this.configureGitMetaWatcher(repoRoot)
+    }
+  }
+
+  private async configureGitMetaWatcher(repoRoot: string): Promise<void> {
+    const gitDir = await this.getGitDir(repoRoot)
+    if (!gitDir) return
+
+    if (this.gitMetaWatcher) {
+      void this.gitMetaWatcher.close()
+      this.gitMetaWatcher = null
+    }
+
+    this.gitMetaWatcher = chokidar.watch(
+      [
+        join(gitDir, 'HEAD'),
+        join(gitDir, 'index'),
+        join(gitDir, 'refs', '**', '*'),
+        join(gitDir, 'logs', 'HEAD')
+      ],
+      {
+        ignoreInitial: true
+      }
+    )
+
+    this.gitMetaWatcher.on('all', () => this.scheduleRefresh())
+    this.gitMetaWatcher.on('error', () => this.scheduleRefresh())
+  }
+
+  private async getGitDir(repoRoot: string): Promise<string | null> {
+    try {
+      const { stdout } = await execFileAsync('git', ['-C', repoRoot, 'rev-parse', '--git-dir'])
+      const raw = stdout.trim()
+      if (!raw) return null
+      return raw.startsWith('/') ? raw : join(repoRoot, raw)
+    } catch {
+      return null
     }
   }
 
