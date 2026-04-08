@@ -54,7 +54,7 @@ body {
   border-bottom: 1px solid var(--panel-border);
   background: var(--panel);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
   align-items: center;
   min-height: 0;
 }
@@ -95,8 +95,39 @@ body {
 .sidebar-actions {
   display: block;
   padding: 4px 6px 4px 0;
+  grid-column: 4;
+  grid-row: 1;
+}
+
+.sidebar-commit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 6px 4px 0;
   grid-column: 3;
   grid-row: 1;
+}
+
+.sidebar-commit button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-elev-1);
+  color: var(--text);
+  border-radius: 8px;
+  width: 30px;
+  height: 24px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.sidebar-commit button svg {
+  display: block;
+}
+
+.sidebar-commit button:hover {
+  background: var(--panel-elev-2);
 }
 
 .sidebar-actions button {
@@ -445,6 +476,94 @@ body {
 
 .empty-state strong {
   font-weight: 700;
+}
+
+.commit-modal {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 20;
+}
+
+.commit-modal[hidden] {
+  display: none;
+}
+
+.commit-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.commit-dialog {
+  position: relative;
+  z-index: 1;
+  width: min(520px, calc(100vw - 24px));
+  background: var(--panel-elev-1);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.commit-dialog h2 {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.commit-dialog textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 110px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-muted);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px;
+  font-family: inherit;
+  font-size: 12px;
+  outline: none;
+  box-shadow: none;
+}
+
+.commit-dialog textarea:focus,
+.commit-dialog textarea:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.commit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.commit-actions button {
+  border: 1px solid var(--panel-border);
+  background: var(--panel-elev-2);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.commit-actions #commit-confirm {
+  border-color: var(--accent-strong);
+  background: var(--accent);
+  color: #eef4fb;
+}
+
+.commit-actions button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.commit-error {
+  color: var(--red);
+  font-size: 12px;
 }
 
 @media (max-width: 760px) {

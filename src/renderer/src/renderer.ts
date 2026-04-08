@@ -40,7 +40,14 @@ const totalRemoved = document.getElementById('total-removed') as HTMLElement
 const sectionsRoot = document.getElementById('diff-sections') as HTMLElement
 const emptyState = document.getElementById('empty-state') as HTMLElement
 const modeButton = document.getElementById('layout-toggle') as HTMLButtonElement
+const commitButton = document.getElementById('commit-button') as HTMLButtonElement
 const sectionsScroller = document.getElementById('diff-scroller') as HTMLElement
+const commitModal = document.getElementById('commit-modal') as HTMLElement
+const commitBackdrop = document.getElementById('commit-backdrop') as HTMLElement
+const commitMessage = document.getElementById('commit-message') as HTMLTextAreaElement
+const commitConfirm = document.getElementById('commit-confirm') as HTMLButtonElement
+const commitCancel = document.getElementById('commit-cancel') as HTMLButtonElement
+const commitError = document.getElementById('commit-error') as HTMLElement
 
 function init(): void {
   updateLayoutToggle()
@@ -54,6 +61,17 @@ function init(): void {
     }
   })
 
+  commitButton.addEventListener('click', openCommitModal)
+  commitBackdrop.addEventListener('click', closeCommitModal)
+  commitCancel.addEventListener('click', closeCommitModal)
+  commitConfirm.addEventListener('click', () => {
+    void submitCommit()
+  })
+  window.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || commitModal.hidden) return
+    closeCommitModal()
+  })
+
   sectionsScroller.addEventListener('scroll', onScrollActiveSection)
   void boot()
 }
@@ -61,6 +79,47 @@ function init(): void {
 function updateLayoutToggle(): void {
   modeButton.classList.toggle('is-inline', layoutMode === 'inline')
   modeButton.classList.toggle('is-side-by-side', layoutMode === 'side-by-side')
+}
+
+function openCommitModal(): void {
+  commitModal.hidden = false
+  commitError.hidden = true
+  commitError.textContent = ''
+  commitMessage.value = ''
+  commitConfirm.disabled = false
+  commitCancel.disabled = false
+  requestAnimationFrame(() => {
+    commitMessage.focus()
+  })
+}
+
+function closeCommitModal(): void {
+  commitModal.hidden = true
+}
+
+async function submitCommit(): Promise<void> {
+  const message = commitMessage.value.trim()
+  if (!message) {
+    commitError.hidden = false
+    commitError.textContent = 'Commit message is required.'
+    return
+  }
+
+  commitConfirm.disabled = true
+  commitCancel.disabled = true
+  commitError.hidden = true
+  commitError.textContent = ''
+
+  const result = await window.api.commit(message)
+  if (!result.ok) {
+    commitConfirm.disabled = false
+    commitCancel.disabled = false
+    commitError.hidden = false
+    commitError.textContent = result.error ?? 'Commit failed.'
+    return
+  }
+
+  closeCommitModal()
 }
 
 async function boot(): Promise<void> {

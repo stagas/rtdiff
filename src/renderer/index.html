@@ -20,6 +20,17 @@
           </div>
         </div>
 
+        <div class="sidebar-commit">
+          <button id="commit-button" type="button" aria-label="Open commit dialog">
+            <svg viewBox="0 0 16 16" width="12" height="12" focusable="false" aria-hidden="true">
+              <circle cx="4" cy="3.5" r="1.4" fill="none" stroke="currentColor" stroke-width="1.2" />
+              <circle cx="12" cy="6.8" r="1.4" fill="none" stroke="currentColor" stroke-width="1.2" />
+              <circle cx="4" cy="12.5" r="1.4" fill="none" stroke="currentColor" stroke-width="1.2" />
+              <path d="M5.4 3.9c3.3 0 4.7 0.8 5.2 1.6M4 4.9v6.2" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+            </svg>
+          </button>
+        </div>
+
         <div class="sidebar-actions">
           <button id="layout-toggle" type="button" aria-label="Toggle diff layout mode">
             <span class="layout-icon layout-sbs" aria-hidden="true">
@@ -45,6 +56,19 @@
         <p id="empty-state" class="empty-state" hidden></p>
         <div id="diff-sections" class="diff-sections"></div>
       </main>
+    </div>
+
+    <div id="commit-modal" class="commit-modal" hidden>
+      <div id="commit-backdrop" class="commit-backdrop"></div>
+      <section class="commit-dialog" role="dialog" aria-modal="true" aria-labelledby="commit-title">
+        <h2 id="commit-title">Commit Changes</h2>
+        <textarea id="commit-message" rows="6" placeholder="Commit message"></textarea>
+        <p id="commit-error" class="commit-error" hidden></p>
+        <div class="commit-actions">
+          <button id="commit-confirm" type="button">Commit</button>
+          <button id="commit-cancel" type="button">Cancel</button>
+        </div>
+      </section>
     </div>
 
     <script type="module" src="./src/renderer.ts"></script>

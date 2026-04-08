@@ -14,6 +14,7 @@ const execFileAsync = promisify(execFile)
 const DIFF_UPDATE_CHANNEL = 'diff:update'
 const DIFF_SUBSCRIBE_CHANNEL = 'diff:subscribe'
 const DIFF_GET_SNAPSHOT_CHANNEL = 'diff:getSnapshot'
+const DIFF_COMMIT_CHANNEL = 'diff:commit'
 
 const BINARY_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.pdf', '.zip', '.gz'])
 
@@ -43,6 +44,29 @@ class DiffService {
       await this.refreshNow()
     }
     return this.snapshot
+  }
+
+  async commit(message: string): Promise<{ ok: boolean; error?: string }> {
+    const commitMessage = message.trim()
+    if (!commitMessage) {
+      return { ok: false, error: 'Commit message is required.' }
+    }
+
+    const repoRoot = this.snapshot.repoRoot ?? (await this.findNearestRepoRoot(this.startDir))
+    if (!repoRoot) {
+      return { ok: false, error: 'Not inside a git repository.' }
+    }
+
+    try {
+      await execFileAsync('git', ['-C', repoRoot, 'add', '.'])
+      await execFileAsync('git', ['-C', repoRoot, 'commit', '-m', commitMessage])
+      await this.refreshNow()
+      return { ok: true }
+    } catch (error) {
+      const stderr = error instanceof Error && 'stderr' in error ? String(error.stderr ?? '').trim() : ''
+      const messageText = stderr || (error instanceof Error ? error.message : 'Commit failed.')
+      return { ok: false, error: messageText }
+    }
   }
 
   subscribe(sender: WebContents): void {
@@ -537,6 +561,18 @@ app.whenReady().then(async () => {
     }
 
     return diffService.getSnapshot()
+  })
+
+  ipcMain.handle(DIFF_COMMIT_CHANNEL, async (_event, message: unknown) => {
+    if (!diffService) {
+      return { ok: false, error: 'Diff service unavailable' }
+    }
+
+    if (typeof message !== 'string') {
+      return { ok: false, error: 'Invalid commit message.' }
+    }
+
+    return diffService.commit(message)
   })
 
   ipcMain.on(DIFF_SUBSCRIBE_CHANNEL, (event) => {
