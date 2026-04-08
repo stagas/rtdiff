@@ -513,9 +513,15 @@ body {
   font-weight: 600;
 }
 
-.commit-tools {
+.commit-header {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.commit-tools {
+  display: inline-flex;
 }
 
 .commit-tools button {

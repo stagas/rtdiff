@@ -61,14 +61,16 @@
     <div id="commit-modal" class="commit-modal" hidden>
       <div id="commit-backdrop" class="commit-backdrop"></div>
       <section class="commit-dialog" role="dialog" aria-modal="true" aria-labelledby="commit-title">
-        <h2 id="commit-title">Commit Changes</h2>
-        <div class="commit-tools">
-          <button id="commit-generate" type="button" aria-label="Generate commit message">
-            <svg viewBox="0 0 16 16" width="12" height="12" focusable="false" aria-hidden="true">
-              <path d="M8 1.8 9.4 5l3.3 1.4-3.3 1.4L8 11l-1.4-3.2L3.3 6.4 6.6 5zM12.2 9.5l.8 1.8 1.8.8-1.8.8-.8 1.8-.8-1.8-1.8-.8 1.8-.8zM3.6 9.8l.6 1.3 1.3.6-1.3.6-.6 1.3-.6-1.3-1.3-.6 1.3-.6z" fill="currentColor" />
-            </svg>
-            <span>Generate</span>
-          </button>
+        <div class="commit-header">
+          <h2 id="commit-title">Commit Changes</h2>
+          <div class="commit-tools">
+            <button id="commit-generate" type="button" aria-label="Generate commit message">
+              <svg viewBox="0 0 16 16" width="12" height="12" focusable="false" aria-hidden="true">
+                <path d="M8 1.8 9.4 5l3.3 1.4-3.3 1.4L8 11l-1.4-3.2L3.3 6.4 6.6 5zM12.2 9.5l.8 1.8 1.8.8-1.8.8-.8 1.8-.8-1.8-1.8-.8 1.8-.8zM3.6 9.8l.6 1.3 1.3.6-1.3.6-.6 1.3-.6-1.3-1.3-.6 1.3-.6z" fill="currentColor" />
+              </svg>
+              <span>Generate</span>
+            </button>
+          </div>
         </div>
         <textarea id="commit-message" rows="6" placeholder="Commit message"></textarea>
         <p id="commit-error" class="commit-error" hidden></p>
