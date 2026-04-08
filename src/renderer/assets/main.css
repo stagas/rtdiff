@@ -1,0 +1,262 @@
+@import './base.css';
+
+:root {
+  --bg: #101418;
+  --bg-soft: #151b21;
+  --panel: #1b232b;
+  --panel-border: #2b3642;
+  --text: #d9e1ea;
+  --text-soft: #97a8ba;
+  --green: #6ec46e;
+  --red: #f17a7a;
+  --blue: #78b4f6;
+  --yellow: #f2c572;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(circle at top right, #233041 0%, var(--bg) 45%);
+  color: var(--text);
+  overflow: hidden;
+}
+
+.layout {
+  height: 100vh;
+  display: grid;
+  grid-template-columns: 320px 1fr;
+}
+
+.sidebar {
+  border-right: 1px solid var(--panel-border);
+  background: linear-gradient(180deg, #151d26, #121820);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.sidebar-top {
+  padding: 18px 16px 10px;
+}
+
+.sidebar-top h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.repo-state {
+  margin-top: 8px;
+  color: var(--text-soft);
+  font-size: 13px;
+}
+
+.repo-root {
+  margin-top: 4px;
+  color: #7f90a1;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.totals {
+  padding: 10px 16px;
+  display: grid;
+  gap: 8px;
+}
+
+.total-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  background: var(--panel);
+}
+
+.total-card .label {
+  color: var(--text-soft);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.added {
+  color: var(--green);
+}
+
+.removed {
+  color: var(--red);
+}
+
+.sidebar-actions {
+  padding: 8px 16px;
+}
+
+.sidebar-actions button {
+  width: 100%;
+  border: 1px solid #365778;
+  background: #1a3c58;
+  color: #cce6ff;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.sidebar-actions button:hover {
+  background: #205071;
+}
+
+.file-list {
+  padding: 10px;
+  display: grid;
+  gap: 6px;
+  overflow: auto;
+}
+
+.file-item {
+  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 8px;
+  text-align: left;
+  width: 100%;
+  padding: 8px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+  cursor: pointer;
+}
+
+.file-item.active {
+  border-color: #4f89c0;
+  box-shadow: inset 0 0 0 1px #4f89c0;
+}
+
+.file-marker,
+.status-pill {
+  min-width: 20px;
+  text-align: center;
+  font-weight: 700;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1;
+  padding: 4px;
+  color: #0d141b;
+}
+
+.status-added {
+  background: var(--green);
+}
+
+.status-removed {
+  background: var(--red);
+}
+
+.status-renamed {
+  background: var(--yellow);
+}
+
+.status-modified {
+  background: var(--blue);
+}
+
+.file-path {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-delta {
+  display: inline-flex;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.diff-scroller {
+  overflow: auto;
+  padding: 16px;
+}
+
+.diff-sections {
+  display: grid;
+  gap: 14px;
+  padding-bottom: 30vh;
+}
+
+.diff-section {
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  background: #121820;
+  overflow: hidden;
+}
+
+.diff-section.active {
+  border-color: #4f89c0;
+}
+
+.diff-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.diff-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.diff-line-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.diff-editor {
+  height: 280px;
+}
+
+.binary-placeholder {
+  color: var(--text-soft);
+  padding: 24px;
+  font-size: 13px;
+}
+
+.empty-state {
+  border: 1px dashed #506173;
+  border-radius: 12px;
+  background: #131b23;
+  color: #b2c1d1;
+  padding: 20px;
+}
+
+@media (max-width: 980px) {
+  .layout {
+    grid-template-columns: 240px 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    max-height: 48vh;
+    border-right: none;
+    border-bottom: 1px solid var(--panel-border);
+  }
+
+  .diff-scroller {
+    height: 52vh;
+  }
+}

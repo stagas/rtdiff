@@ -1,0 +1,33 @@
+import { contextBridge, ipcRenderer } from 'electron'
+import { electronAPI } from '@electron-toolkit/preload'
+import type { DiffSnapshot } from '../shared/diff'
+
+const api = {
+  getSnapshot: (): Promise<DiffSnapshot> => ipcRenderer.invoke('diff:getSnapshot'),
+  onSnapshot: (listener: (snapshot: DiffSnapshot) => void): (() => void) => {
+    const wrapped = (_event: Electron.IpcRendererEvent, snapshot: DiffSnapshot): void => {
+      listener(snapshot)
+    }
+
+    ipcRenderer.on('diff:update', wrapped)
+    ipcRenderer.send('diff:subscribe')
+
+    return () => {
+      ipcRenderer.off('diff:update', wrapped)
+    }
+  }
+}
+
+if (process.contextIsolated) {
+  try {
+    contextBridge.exposeInMainWorld('electron', electronAPI)
+    contextBridge.exposeInMainWorld('api', api)
+  } catch (error) {
+    console.error(error)
+  }
+} else {
+  // @ts-ignore (define in dts)
+  window.electron = electronAPI
+  // @ts-ignore (define in dts)
+  window.api = api
+}
