@@ -2,7 +2,6 @@
 
 :root {
   --bg: #101418;
-  --bg-soft: #151b21;
   --panel: #1b232b;
   --panel-border: #2b3642;
   --text: #d9e1ea;
@@ -11,6 +10,10 @@
   --red: #f17a7a;
   --blue: #78b4f6;
   --yellow: #f2c572;
+  --row-context: #111a22;
+  --row-added: #0f2a1e;
+  --row-removed: #341b1b;
+  --row-modified: #1e2538;
 }
 
 body {
@@ -221,8 +224,157 @@ body {
   font-size: 12px;
 }
 
-.diff-editor {
-  height: 280px;
+.diff-content {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  background: #10161d;
+}
+
+.diff-hunk {
+  border: 1px solid #2a3949;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #0f151c;
+}
+
+.diff-hunk-scroll {
+  overflow: hidden;
+}
+
+.diff-table {
+  display: grid;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.diff-table.side-by-side {
+  width: 100%;
+}
+
+.diff-table.inline {
+  min-width: max-content;
+}
+
+.diff-row {
+  display: grid;
+  align-items: stretch;
+  min-height: 0;
+}
+
+.diff-table.side-by-side .diff-row {
+  grid-template-columns: 56px minmax(0, 1fr) 56px minmax(0, 1fr);
+}
+
+.diff-sbs {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.diff-sbs-pane {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.diff-sbs-pane:first-child {
+  border-right: 1px solid #263547;
+}
+
+.diff-sbs-table {
+  min-width: max-content;
+}
+
+.diff-sbs-table .diff-row {
+  grid-template-columns: 56px minmax(0, 1fr);
+}
+
+.diff-table.inline .diff-row.inline {
+  grid-template-columns: 26px 56px 1fr;
+}
+
+.diff-row.context {
+  background: var(--row-context);
+}
+
+.diff-row.added {
+  background: var(--row-added);
+}
+
+.diff-row.removed {
+  background: var(--row-removed);
+}
+
+.diff-row.modified {
+  background: var(--row-modified);
+}
+
+.line-marker,
+.line-no {
+  color: #8ca0b5;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.1;
+  padding: 0 8px;
+  border-right: 1px solid #263547;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  user-select: none;
+}
+
+.line-marker {
+  justify-content: center;
+}
+
+.line-code {
+  padding: 0 10px;
+  white-space: pre;
+  overflow: visible;
+  min-width: 0;
+  min-height: 1.1em;
+  display: block;
+  font-size: 11px;
+  line-height: 1.1;
+}
+
+.file-list,
+.diff-scroller,
+.diff-hunk-scroll,
+.diff-sbs-pane {
+  scrollbar-color: #3a4a5a #121a22;
+  scrollbar-width: thin;
+}
+
+.file-list::-webkit-scrollbar,
+.diff-scroller::-webkit-scrollbar,
+.diff-hunk-scroll::-webkit-scrollbar,
+.diff-sbs-pane::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.file-list::-webkit-scrollbar-track,
+.diff-scroller::-webkit-scrollbar-track,
+.diff-hunk-scroll::-webkit-scrollbar-track,
+.diff-sbs-pane::-webkit-scrollbar-track {
+  background: #121a22;
+}
+
+.file-list::-webkit-scrollbar-thumb,
+.diff-scroller::-webkit-scrollbar-thumb,
+.diff-hunk-scroll::-webkit-scrollbar-thumb,
+.diff-sbs-pane::-webkit-scrollbar-thumb {
+  background: #3a4a5a;
+  border-radius: 999px;
+  border: 2px solid #121a22;
+}
+
+.file-list::-webkit-scrollbar-thumb:hover,
+.diff-scroller::-webkit-scrollbar-thumb:hover,
+.diff-hunk-scroll::-webkit-scrollbar-thumb:hover,
+.diff-sbs-pane::-webkit-scrollbar-thumb:hover {
+  background: #4a5e72;
 }
 
 .binary-placeholder {
@@ -258,5 +410,13 @@ body {
 
   .diff-scroller {
     height: 52vh;
+  }
+
+  .diff-table.side-by-side .diff-row {
+    grid-template-columns: 42px 1fr 42px 1fr;
+  }
+
+  .diff-sbs-table .diff-row {
+    grid-template-columns: 42px minmax(0, 1fr);
   }
 }

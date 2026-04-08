@@ -26,6 +26,7 @@ interface StatusFile {
 class DiffService {
   private snapshot: DiffSnapshot = this.createEmptySnapshot('not_in_repo', 'Not inside a git repository')
   private watcher: FSWatcher | null = null
+  private gitMetaWatcher: FSWatcher | null = null
   private subscribers = new Set<number>()
   private refreshTimer: NodeJS.Timeout | null = null
   private refreshing = false
@@ -74,6 +75,10 @@ class DiffService {
       void this.watcher.close()
       this.watcher = null
     }
+    if (this.gitMetaWatcher) {
+      void this.gitMetaWatcher.close()
+      this.gitMetaWatcher = null
+    }
   }
 
   private configureWatcher(): void {
@@ -83,6 +88,10 @@ class DiffService {
     if (this.watcher) {
       void this.watcher.close()
       this.watcher = null
+    }
+    if (this.gitMetaWatcher) {
+      void this.gitMetaWatcher.close()
+      this.gitMetaWatcher = null
     }
 
     this.watcher = chokidar.watch(watchRoot, {
@@ -98,6 +107,18 @@ class DiffService {
 
     this.watcher.on('all', () => this.scheduleRefresh())
     this.watcher.on('error', () => this.scheduleRefresh())
+
+    if (repoRoot) {
+      const gitRoot = join(repoRoot, '.git')
+      this.gitMetaWatcher = chokidar.watch(
+        [join(gitRoot, 'HEAD'), join(gitRoot, 'index'), join(gitRoot, 'refs', '**', '*')],
+        {
+          ignoreInitial: true
+        }
+      )
+      this.gitMetaWatcher.on('all', () => this.scheduleRefresh())
+      this.gitMetaWatcher.on('error', () => this.scheduleRefresh())
+    }
   }
 
   private async refreshNow(): Promise<void> {

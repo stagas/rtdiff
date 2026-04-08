@@ -1,34 +1,36 @@
-import * as monaco from 'monaco-editor'
-import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
-import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker'
-import cssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker'
-import htmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker'
-import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker'
-import { createHighlighter } from 'shiki'
-import { shikiToMonaco } from '@shikijs/monaco'
+import { createHighlighter, createJavaScriptRegexEngine, type Highlighter } from 'shiki'
 import type { DiffFile, DiffSnapshot, LayoutMode } from '../../shared/diff'
 
-type WorkerFactory = { new (): Worker }
+type RowKind = 'context' | 'added' | 'removed' | 'modified'
 
-interface MonacoEnvironmentWithWorker {
-  getWorker: (_: string, label: string) => Worker
+interface DiffOp {
+  type: 'context' | 'add' | 'remove'
+  leftLine?: number
+  rightLine?: number
+}
+
+interface DiffRow {
+  kind: RowKind
+  leftLine?: number
+  rightLine?: number
+}
+
+interface DiffHunk {
+  rows: DiffRow[]
 }
 
 interface FileView {
   path: string
   section: HTMLElement
   sidebarItem: HTMLButtonElement
-  editorHost: HTMLElement
-  editor: monaco.editor.IStandaloneDiffEditor | null
-  originalModel: monaco.editor.ITextModel | null
-  modifiedModel: monaco.editor.ITextModel | null
+  contentHost: HTMLElement
 }
 
 const fileViews = new Map<string, FileView>()
 let layoutMode: LayoutMode = 'side-by-side'
 let snapshot: DiffSnapshot | null = null
 let activePath: string | null = null
-let shikiReady = false
+let highlighter: Highlighter | null = null
 
 const appRoot = document.getElementById('app') as HTMLElement
 const sidebarList = document.getElementById('file-list') as HTMLElement
@@ -42,66 +44,26 @@ const emptyState = document.getElementById('empty-state') as HTMLElement
 const modeButton = document.getElementById('layout-toggle') as HTMLButtonElement
 const sectionsScroller = document.getElementById('diff-scroller') as HTMLElement
 
-function installMonacoWorkers(): void {
-  const globalScope = globalThis as typeof globalThis & { MonacoEnvironment?: MonacoEnvironmentWithWorker }
-
-  globalScope.MonacoEnvironment = {
-    getWorker(_: string, label: string): Worker {
-      if (label === 'json') return new (jsonWorker as WorkerFactory)()
-      if (label === 'css' || label === 'scss' || label === 'less') return new (cssWorker as WorkerFactory)()
-      if (label === 'html' || label === 'handlebars' || label === 'razor') return new (htmlWorker as WorkerFactory)()
-      if (label === 'typescript' || label === 'javascript') return new (tsWorker as WorkerFactory)()
-      return new (editorWorker as WorkerFactory)()
-    }
-  }
-}
-
-async function installShikiTheme(): Promise<void> {
-  if (shikiReady) return
-
-  const highlighter = await createHighlighter({
-    themes: ['github-dark-default'],
-    langs: [
-      'plaintext',
-      'typescript',
-      'tsx',
-      'javascript',
-      'jsx',
-      'json',
-      'css',
-      'scss',
-      'html',
-      'markdown',
-      'yaml',
-      'bash',
-      'diff'
-    ]
-  })
-
-  shikiToMonaco(highlighter, monaco)
-  monaco.editor.setTheme('github-dark-default')
-  shikiReady = true
-}
-
 function init(): void {
-  installMonacoWorkers()
-
   modeButton.addEventListener('click', () => {
     layoutMode = layoutMode === 'side-by-side' ? 'inline' : 'side-by-side'
     modeButton.textContent = layoutMode === 'side-by-side' ? 'Inline View' : 'Side by Side'
 
-    for (const view of fileViews.values()) {
-      view.editor?.updateOptions({ renderSideBySide: layoutMode === 'side-by-side' })
+    if (snapshot) {
+      applySnapshot(snapshot)
     }
   })
 
   sectionsScroller.addEventListener('scroll', onScrollActiveSection)
-
   void boot()
 }
 
 async function boot(): Promise<void> {
-  await installShikiTheme()
+  highlighter = await createHighlighter({
+    themes: ['github-dark-default'],
+    langs: ['plaintext', 'typescript', 'tsx', 'javascript', 'jsx', 'json', 'css', 'scss', 'html', 'markdown', 'yaml', 'bash', 'diff'],
+    engine: createJavaScriptRegexEngine()
+  })
 
   const firstSnapshot = await window.api.getSnapshot()
   applySnapshot(firstSnapshot)
@@ -124,7 +86,6 @@ function applySnapshot(nextSnapshot: DiffSnapshot): void {
   appRoot.classList.remove('has-empty-state')
 
   const incomingPaths = new Set(nextSnapshot.files.map((file) => file.path))
-
   for (const [path, view] of fileViews) {
     if (!incomingPaths.has(path)) {
       disposeView(view)
@@ -162,11 +123,7 @@ function updateSummary(nextSnapshot: DiffSnapshot): void {
   totalAdded.textContent = `+${nextSnapshot.totals.added}`
   totalRemoved.textContent = `-${nextSnapshot.totals.removed}`
 
-  if (nextSnapshot.repoRoot) {
-    repoText.textContent = nextSnapshot.repoRoot
-  } else {
-    repoText.textContent = 'No repository found'
-  }
+  repoText.textContent = nextSnapshot.repoRoot ?? 'No repository found'
 
   if (nextSnapshot.repoState === 'ok') {
     stateText.textContent = 'Tracking git changes'
@@ -195,9 +152,7 @@ function renderNotReady(nextSnapshot: DiffSnapshot): void {
 
 function upsertView(file: DiffFile): FileView {
   const existing = fileViews.get(file.path)
-  if (existing) {
-    return existing
-  }
+  if (existing) return existing
 
   const section = document.createElement('section')
   section.className = 'diff-section'
@@ -215,10 +170,10 @@ function upsertView(file: DiffFile): FileView {
 
   header.append(title, stats)
 
-  const editorHost = document.createElement('div')
-  editorHost.className = 'diff-editor'
+  const contentHost = document.createElement('div')
+  contentHost.className = 'diff-content'
 
-  section.append(header, editorHost)
+  section.append(header, contentHost)
   sectionsRoot.append(section)
 
   const sidebarItem = document.createElement('button')
@@ -233,10 +188,7 @@ function upsertView(file: DiffFile): FileView {
     path: file.path,
     section,
     sidebarItem,
-    editorHost,
-    editor: null,
-    originalModel: null,
-    modifiedModel: null
+    contentHost
   }
 
   fileViews.set(file.path, view)
@@ -266,70 +218,339 @@ function updateSection(view: FileView, file: DiffFile): void {
   `
 
   if (file.isBinary) {
-    disposeEditorOnly(view)
-    view.editorHost.innerHTML = '<div class="binary-placeholder">Binary file changes cannot be rendered as text diff.</div>'
+    view.contentHost.innerHTML = '<div class="binary-placeholder">Binary file changes cannot be rendered as text diff.</div>'
     return
   }
 
-  if (view.editorHost.firstElementChild?.classList.contains('binary-placeholder')) {
-    view.editorHost.innerHTML = ''
-  }
-
-  if (!view.editor) {
-    view.editor = monaco.editor.createDiffEditor(view.editorHost, {
-      readOnly: true,
-      renderSideBySide: layoutMode === 'side-by-side',
-      automaticLayout: true,
-      scrollBeyondLastLine: false,
-      minimap: { enabled: false },
-      diffCodeLens: false,
-      originalEditable: false,
-      wordWrap: 'on'
-    })
-  }
-
-  if (!view.originalModel) {
-    view.originalModel = monaco.editor.createModel('', detectLanguage(file.path), monaco.Uri.parse(`rtdiff://original/${file.path}`))
-  }
-  if (!view.modifiedModel) {
-    view.modifiedModel = monaco.editor.createModel('', detectLanguage(file.path), monaco.Uri.parse(`rtdiff://modified/${file.path}`))
-  }
-
   const language = detectLanguage(file.path)
-  monaco.editor.setModelLanguage(view.originalModel, language)
-  monaco.editor.setModelLanguage(view.modifiedModel, language)
+  const originalLines = splitLines(file.originalText)
+  const modifiedLines = splitLines(file.modifiedText)
+  const rows = buildRows(originalLines, modifiedLines)
+  const hunks = buildHunks(rows, 3)
 
-  if (view.originalModel.getValue() !== file.originalText) {
-    view.originalModel.setValue(file.originalText)
-  }
-
-  if (view.modifiedModel.getValue() !== file.modifiedText) {
-    view.modifiedModel.setValue(file.modifiedText)
-  }
-
-  view.editor.updateOptions({ renderSideBySide: layoutMode === 'side-by-side' })
-  view.editor.setModel({ original: view.originalModel, modified: view.modifiedModel })
+  const originalTokens = tokenizeLines(file.originalText, language)
+  const modifiedTokens = tokenizeLines(file.modifiedText, language)
+  const hunkNodes = hunks.map((hunk) => renderHunk(hunk, originalTokens, modifiedTokens, layoutMode))
+  view.contentHost.replaceChildren(...hunkNodes)
 }
 
-function disposeEditorOnly(view: FileView): void {
-  if (view.editor) {
-    view.editor.dispose()
-    view.editor = null
+function renderHunk(
+  hunk: DiffHunk,
+  originalTokens: ShikiTokenLine[],
+  modifiedTokens: ShikiTokenLine[],
+  mode: LayoutMode
+): HTMLElement {
+  const wrapper = document.createElement('div')
+  wrapper.className = 'diff-hunk'
+
+  const scroller = document.createElement('div')
+  scroller.className = 'diff-hunk-scroll'
+
+  if (mode === 'inline') {
+    const table = document.createElement('div')
+    table.className = 'diff-table inline'
+    for (const row of hunk.rows) {
+      const rowEl = renderInlineRow(row, originalTokens, modifiedTokens)
+      rowEl.dataset.changed = row.kind === 'context' ? '0' : '1'
+      table.append(rowEl)
+    }
+    scroller.append(table)
+    wrapper.append(scroller)
+
+    requestAnimationFrame(() => {
+      centerChangedRows(scroller)
+    })
+
+    return wrapper
   }
 
-  if (view.originalModel) {
-    view.originalModel.dispose()
-    view.originalModel = null
+  const split = renderSideBySideHunk(hunk, originalTokens, modifiedTokens)
+  scroller.append(split.container)
+  wrapper.append(scroller)
+
+  requestAnimationFrame(() => {
+    centerChangedRows(split.leftPane)
+    centerChangedRows(split.rightPane)
+  })
+
+  return wrapper
+}
+
+function renderSideBySideHunk(
+  hunk: DiffHunk,
+  originalTokens: ShikiTokenLine[],
+  modifiedTokens: ShikiTokenLine[]
+): { container: HTMLElement; leftPane: HTMLElement; rightPane: HTMLElement } {
+  const container = document.createElement('div')
+  container.className = 'diff-sbs'
+
+  const leftPane = document.createElement('div')
+  leftPane.className = 'diff-sbs-pane'
+  const rightPane = document.createElement('div')
+  rightPane.className = 'diff-sbs-pane'
+
+  const leftTable = document.createElement('div')
+  leftTable.className = 'diff-sbs-table'
+  const rightTable = document.createElement('div')
+  rightTable.className = 'diff-sbs-table'
+
+  for (const row of hunk.rows) {
+    const leftRow = renderPaneRow('left', row, originalTokens, modifiedTokens)
+    leftTable.append(leftRow)
+    const rightRow = renderPaneRow('right', row, originalTokens, modifiedTokens)
+    rightTable.append(rightRow)
   }
 
-  if (view.modifiedModel) {
-    view.modifiedModel.dispose()
-    view.modifiedModel = null
+  leftPane.append(leftTable)
+  rightPane.append(rightTable)
+  container.append(leftPane, rightPane)
+  syncPaneScroll(leftPane, rightPane)
+
+  return { container, leftPane, rightPane }
+}
+
+function renderPaneRow(
+  side: 'left' | 'right',
+  row: DiffRow,
+  originalTokens: ShikiTokenLine[],
+  modifiedTokens: ShikiTokenLine[]
+): HTMLElement {
+  const el = document.createElement('div')
+  el.className = `diff-row ${row.kind}`
+  el.dataset.changed = row.kind === 'context' ? '0' : '1'
+
+  const lineNo = document.createElement('span')
+  lineNo.className = 'line-no pane'
+  lineNo.textContent = side === 'left' ? String(row.leftLine ?? '') : String(row.rightLine ?? '')
+
+  const code = document.createElement('code')
+  code.className = 'line-code pane'
+  if (side === 'left') {
+    code.innerHTML = row.leftLine ? renderTokenLine(originalTokens[row.leftLine - 1]) : '&nbsp;'
+  } else {
+    code.innerHTML = row.rightLine ? renderTokenLine(modifiedTokens[row.rightLine - 1]) : '&nbsp;'
   }
+
+  el.append(lineNo, code)
+  return el
+}
+
+function syncPaneScroll(a: HTMLElement, b: HTMLElement): void {
+  let syncing = false
+  a.addEventListener('scroll', () => {
+    if (syncing) return
+    syncing = true
+    b.scrollTop = a.scrollTop
+    b.scrollLeft = a.scrollLeft
+    syncing = false
+  })
+  b.addEventListener('scroll', () => {
+    if (syncing) return
+    syncing = true
+    a.scrollTop = b.scrollTop
+    a.scrollLeft = b.scrollLeft
+    syncing = false
+  })
+}
+
+function centerChangedRows(scroller: HTMLElement): void {
+  const changedRows = [...scroller.querySelectorAll<HTMLElement>('.diff-row[data-changed="1"]')]
+  if (!changedRows.length) return
+
+  const first = changedRows[0]
+  const last = changedRows[changedRows.length - 1]
+  const changedMid = (first.offsetTop + last.offsetTop + last.offsetHeight) / 2
+  const target = Math.max(0, changedMid - scroller.clientHeight / 2)
+  scroller.scrollTop = target
+}
+
+function renderInlineRow(
+  row: DiffRow,
+  originalTokens: ShikiTokenLine[],
+  modifiedTokens: ShikiTokenLine[]
+): HTMLElement {
+  const el = document.createElement('div')
+  el.className = `diff-row inline ${row.kind}`
+
+  const marker = document.createElement('span')
+  marker.className = 'line-marker'
+  marker.textContent = row.kind === 'added' ? '+' : row.kind === 'removed' ? '-' : row.kind === 'modified' ? '~' : ' '
+
+  const lineNo = document.createElement('span')
+  lineNo.className = 'line-no inline'
+  lineNo.textContent = String(row.rightLine ?? row.leftLine ?? '')
+
+  const code = document.createElement('code')
+  code.className = 'line-code inline'
+
+  const tokenLine =
+    row.kind === 'removed'
+      ? originalTokens[(row.leftLine ?? 1) - 1]
+      : modifiedTokens[(row.rightLine ?? row.leftLine ?? 1) - 1]
+
+  code.innerHTML = renderTokenLine(tokenLine)
+
+  el.append(marker, lineNo, code)
+  return el
+}
+
+function buildRows(originalLines: string[], modifiedLines: string[]): DiffRow[] {
+  const ops = diffLines(originalLines, modifiedLines)
+  const rows: DiffRow[] = []
+
+  for (let i = 0; i < ops.length; i += 1) {
+    const op = ops[i]
+    if (op.type === 'context') {
+      rows.push({ kind: 'context', leftLine: op.leftLine, rightLine: op.rightLine })
+    } else if (op.type === 'remove') {
+      rows.push({ kind: 'removed', leftLine: op.leftLine })
+    } else {
+      rows.push({ kind: 'added', rightLine: op.rightLine })
+    }
+  }
+
+  return rows
+}
+
+function buildHunks(rows: DiffRow[], contextLines: number): DiffHunk[] {
+  if (!rows.length) return [{ rows: [] }]
+
+  const changedIndices: number[] = []
+  for (let i = 0; i < rows.length; i += 1) {
+    if (rows[i].kind !== 'context') changedIndices.push(i)
+  }
+
+  if (!changedIndices.length) {
+    return [{ rows }]
+  }
+
+  const ranges: Array<{ start: number; end: number }> = []
+  for (const index of changedIndices) {
+    const start = Math.max(0, index - contextLines)
+    const end = Math.min(rows.length - 1, index + contextLines)
+    const last = ranges[ranges.length - 1]
+    if (last && start <= last.end + 1) {
+      last.end = Math.max(last.end, end)
+    } else {
+      ranges.push({ start, end })
+    }
+  }
+
+  return ranges.map((range) => ({
+    rows: rows.slice(range.start, range.end + 1)
+  }))
+}
+
+function diffLines(left: string[], right: string[]): DiffOp[] {
+  if (left.length > 1400 || right.length > 1400) {
+    return fastDiffLines(left, right)
+  }
+
+  const n = left.length
+  const m = right.length
+  const lcs: number[][] = Array.from({ length: n + 1 }, () => Array<number>(m + 1).fill(0))
+
+  for (let i = n - 1; i >= 0; i -= 1) {
+    for (let j = m - 1; j >= 0; j -= 1) {
+      if (left[i] === right[j]) {
+        lcs[i][j] = lcs[i + 1][j + 1] + 1
+      } else {
+        lcs[i][j] = Math.max(lcs[i + 1][j], lcs[i][j + 1])
+      }
+    }
+  }
+
+  const ops: DiffOp[] = []
+  let i = 0
+  let j = 0
+
+  while (i < n && j < m) {
+    if (left[i] === right[j]) {
+      ops.push({ type: 'context', leftLine: i + 1, rightLine: j + 1 })
+      i += 1
+      j += 1
+    } else if (lcs[i + 1][j] >= lcs[i][j + 1]) {
+      ops.push({ type: 'remove', leftLine: i + 1 })
+      i += 1
+    } else {
+      ops.push({ type: 'add', rightLine: j + 1 })
+      j += 1
+    }
+  }
+
+  while (i < n) {
+    ops.push({ type: 'remove', leftLine: i + 1 })
+    i += 1
+  }
+
+  while (j < m) {
+    ops.push({ type: 'add', rightLine: j + 1 })
+    j += 1
+  }
+
+  return ops
+}
+
+function fastDiffLines(left: string[], right: string[]): DiffOp[] {
+  const ops: DiffOp[] = []
+  const maxLen = Math.max(left.length, right.length)
+
+  for (let i = 0; i < maxLen; i += 1) {
+    const l = left[i]
+    const r = right[i]
+
+    if (l !== undefined && r !== undefined) {
+      if (l === r) {
+        ops.push({ type: 'context', leftLine: i + 1, rightLine: i + 1 })
+      } else {
+        ops.push({ type: 'remove', leftLine: i + 1 })
+        ops.push({ type: 'add', rightLine: i + 1 })
+      }
+    } else if (l !== undefined) {
+      ops.push({ type: 'remove', leftLine: i + 1 })
+    } else {
+      ops.push({ type: 'add', rightLine: i + 1 })
+    }
+  }
+
+  return ops
+}
+
+function tokenizeLines(text: string, language: string): ShikiTokenLine[] {
+  if (!highlighter) return []
+
+  const tokens = highlighter.codeToTokensBase(text, {
+    lang: language as never,
+    theme: 'github-dark-default'
+  }) as ShikiTokenLine[]
+
+  return tokens
+}
+
+function renderTokenLine(tokens: ShikiTokenLine | undefined): string {
+  if (!tokens || tokens.length === 0) {
+    return '&nbsp;'
+  }
+
+  return tokens
+    .map((token) => {
+      const content = escapeHtml(token.content).replaceAll(' ', '&nbsp;').replaceAll('\t', '&nbsp;&nbsp;')
+      const color = token.color ? ` style=\"color:${token.color}\"` : ''
+      return `<span${color}>${content || '&nbsp;'}</span>`
+    })
+    .join('')
+}
+
+function splitLines(text: string): string[] {
+  if (text.length === 0) return []
+  const lines = text.split('\n')
+  if (lines[lines.length - 1] === '') {
+    lines.pop()
+  }
+  return lines
 }
 
 function disposeView(view: FileView): void {
-  disposeEditorOnly(view)
   view.sidebarItem.remove()
   view.section.remove()
 }
@@ -379,17 +600,15 @@ function onScrollActiveSection(): void {
 
 function detectLanguage(path: string): string {
   const lower = path.toLowerCase()
-  if (lower.endsWith('.ts') || lower.endsWith('.mts') || lower.endsWith('.cts')) return 'typescript'
-  if (lower.endsWith('.tsx')) return 'typescript'
-  if (lower.endsWith('.js') || lower.endsWith('.mjs') || lower.endsWith('.cjs')) return 'javascript'
-  if (lower.endsWith('.jsx')) return 'javascript'
+  if (lower.endsWith('.ts') || lower.endsWith('.mts') || lower.endsWith('.cts') || lower.endsWith('.tsx')) return 'typescript'
+  if (lower.endsWith('.js') || lower.endsWith('.mjs') || lower.endsWith('.cjs') || lower.endsWith('.jsx')) return 'javascript'
   if (lower.endsWith('.json')) return 'json'
   if (lower.endsWith('.css')) return 'css'
   if (lower.endsWith('.scss')) return 'scss'
   if (lower.endsWith('.html') || lower.endsWith('.htm')) return 'html'
   if (lower.endsWith('.md')) return 'markdown'
   if (lower.endsWith('.yaml') || lower.endsWith('.yml')) return 'yaml'
-  if (lower.endsWith('.sh')) return 'shell'
+  if (lower.endsWith('.sh')) return 'bash'
   return 'plaintext'
 }
 
@@ -401,5 +620,8 @@ function escapeHtml(value: string): string {
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;')
 }
+
+type ShikiToken = { content: string; color?: string }
+type ShikiTokenLine = ShikiToken[]
 
 init()
