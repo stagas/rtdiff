@@ -170,6 +170,27 @@ body {
   height: 12px;
 }
 
+.sidebar,
+.totals,
+.total-inline,
+.sidebar-commit,
+.sidebar-actions,
+.file-list,
+.file-item,
+.diff-header,
+.diff-line-count,
+.empty-state,
+.commit-dialog h2,
+.commit-tools,
+.commit-actions,
+.commit-actions button {
+  user-select: none;
+}
+
+#branch-name {
+  user-select: text;
+}
+
 #layout-toggle.is-side-by-side .layout-sbs,
 #layout-toggle.is-inline .layout-inline {
   background: var(--accent);
