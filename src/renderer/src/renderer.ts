@@ -108,7 +108,8 @@ function applySnapshot(nextSnapshot: DiffSnapshot): void {
 
   if (!nextSnapshot.files.length) {
     emptyState.hidden = false
-    emptyState.textContent = 'Working tree clean'
+    const branch = nextSnapshot.branchName ?? 'unknown'
+    emptyState.textContent = `On branch ${branch}, working tree clean`
     appRoot.classList.add('has-empty-state')
   }
 
