@@ -427,7 +427,7 @@ body {
 }
 
 .empty-state {
-  border: 1px dashed #4b5058;
+  border: none;
   border-radius: 0;
   background: #262a30;
   color: #b7bbc2;
