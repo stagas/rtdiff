@@ -568,6 +568,24 @@ body {
   cursor: pointer;
 }
 
+.commit-tools button .spinner {
+  display: none;
+  width: 10px;
+  height: 10px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: commit-spin 0.8s linear infinite;
+}
+
+.commit-tools button.is-loading svg {
+  display: none;
+}
+
+.commit-tools button.is-loading .spinner {
+  display: inline-block;
+}
+
 .commit-tools button:hover {
   background: var(--panel-elev-3);
 }
@@ -575,6 +593,12 @@ body {
 .commit-tools button:disabled {
   opacity: 0.6;
   cursor: default;
+}
+
+@keyframes commit-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .commit-dialog textarea {

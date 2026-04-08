@@ -46,6 +46,7 @@ const commitModal = document.getElementById('commit-modal') as HTMLElement
 const commitBackdrop = document.getElementById('commit-backdrop') as HTMLElement
 const commitMessage = document.getElementById('commit-message') as HTMLTextAreaElement
 const commitGenerate = document.getElementById('commit-generate') as HTMLButtonElement
+const commitGenerateLabel = commitGenerate.querySelector('.label') as HTMLSpanElement
 const commitConfirm = document.getElementById('commit-confirm') as HTMLButtonElement
 const commitCancel = document.getElementById('commit-cancel') as HTMLButtonElement
 const commitError = document.getElementById('commit-error') as HTMLElement
@@ -96,6 +97,7 @@ function openCommitModal(): void {
   requestAnimationFrame(() => {
     commitMessage.focus()
   })
+  void generateCommitMessage()
 }
 
 function closeCommitModal(): void {
@@ -130,6 +132,8 @@ async function submitCommit(): Promise<void> {
 }
 
 async function generateCommitMessage(): Promise<void> {
+  commitGenerate.classList.add('is-loading')
+  commitGenerateLabel.textContent = 'Generating...'
   commitGenerate.disabled = true
   commitConfirm.disabled = true
   commitError.hidden = true
@@ -137,6 +141,8 @@ async function generateCommitMessage(): Promise<void> {
 
   const result = await window.api.generateCommitMessage()
   if (!result.ok || !result.message) {
+    commitGenerate.classList.remove('is-loading')
+    commitGenerateLabel.textContent = 'Generate'
     commitGenerate.disabled = false
     commitConfirm.disabled = false
     commitError.hidden = false
@@ -145,6 +151,8 @@ async function generateCommitMessage(): Promise<void> {
   }
 
   commitMessage.value = result.message
+  commitGenerate.classList.remove('is-loading')
+  commitGenerateLabel.textContent = 'Generate'
   commitGenerate.disabled = false
   commitConfirm.disabled = false
 }
