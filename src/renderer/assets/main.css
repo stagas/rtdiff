@@ -138,6 +138,11 @@ body {
   overflow-y: hidden;
   grid-column: 1;
   grid-row: 1;
+  scrollbar-width: none;
+}
+
+.file-list::-webkit-scrollbar {
+  display: none;
 }
 
 .file-item {
@@ -213,7 +218,7 @@ body {
 
 .diff-sections {
   display: grid;
-  gap: 0;
+  gap: 10px;
   padding-bottom: 0;
   min-width: 0;
 }
@@ -237,6 +242,11 @@ body {
   gap: 10px;
   padding: 10px 12px;
   border-bottom: none;
+  background: #2b2f36;
+}
+
+.diff-section + .diff-section {
+  border-top: 1px solid #3a3e45;
 }
 
 .diff-title {
@@ -376,7 +386,6 @@ body {
   line-height: 1.1;
 }
 
-.file-list,
 .diff-scroller,
 .diff-hunk-scroll,
 .diff-sbs-pane {
@@ -384,7 +393,6 @@ body {
   scrollbar-width: thin;
 }
 
-.file-list::-webkit-scrollbar,
 .diff-scroller::-webkit-scrollbar,
 .diff-hunk-scroll::-webkit-scrollbar,
 .diff-sbs-pane::-webkit-scrollbar {
@@ -392,14 +400,12 @@ body {
   height: 10px;
 }
 
-.file-list::-webkit-scrollbar-track,
 .diff-scroller::-webkit-scrollbar-track,
 .diff-hunk-scroll::-webkit-scrollbar-track,
 .diff-sbs-pane::-webkit-scrollbar-track {
   background: #23262b;
 }
 
-.file-list::-webkit-scrollbar-thumb,
 .diff-scroller::-webkit-scrollbar-thumb,
 .diff-hunk-scroll::-webkit-scrollbar-thumb,
 .diff-sbs-pane::-webkit-scrollbar-thumb {
@@ -408,7 +414,6 @@ body {
   border: 2px solid #23262b;
 }
 
-.file-list::-webkit-scrollbar-thumb:hover,
 .diff-scroller::-webkit-scrollbar-thumb:hover,
 .diff-hunk-scroll::-webkit-scrollbar-thumb:hover,
 .diff-sbs-pane::-webkit-scrollbar-thumb:hover {

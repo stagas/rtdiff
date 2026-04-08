@@ -34,7 +34,7 @@ let highlighter: Highlighter | null = null
 
 const appRoot = document.getElementById('app') as HTMLElement
 const sidebarList = document.getElementById('file-list') as HTMLElement
-const totalFiles = document.getElementById('total-files') as HTMLElement
+const branchName = document.getElementById('branch-name') as HTMLElement
 const totalAdded = document.getElementById('total-added') as HTMLElement
 const totalRemoved = document.getElementById('total-removed') as HTMLElement
 const sectionsRoot = document.getElementById('diff-sections') as HTMLElement
@@ -108,7 +108,7 @@ function applySnapshot(nextSnapshot: DiffSnapshot): void {
 
   if (!nextSnapshot.files.length) {
     emptyState.hidden = false
-    emptyState.textContent = 'No local changes found in this repository.'
+    emptyState.textContent = 'Working tree clean'
     appRoot.classList.add('has-empty-state')
   }
 
@@ -124,7 +124,7 @@ function applySnapshot(nextSnapshot: DiffSnapshot): void {
 }
 
 function updateSummary(nextSnapshot: DiffSnapshot): void {
-  totalFiles.textContent = String(nextSnapshot.totals.files)
+  branchName.textContent = nextSnapshot.branchName ?? 'unknown'
   totalAdded.textContent = `+${nextSnapshot.totals.added}`
   totalRemoved.textContent = `-${nextSnapshot.totals.removed}`
 }

@@ -22,6 +22,7 @@ export interface DiffFile {
 export interface DiffSnapshot {
   repoState: RepoState
   repoRoot?: string
+  branchName?: string
   message?: string
   totals: DiffStats
   files: DiffFile[]

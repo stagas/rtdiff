@@ -177,6 +177,7 @@ class DiffService {
 
     try {
       const statusFiles = await this.getStatusFiles(repoRoot)
+      const branchName = await this.getBranchName(repoRoot)
       const files: DiffFile[] = []
       let totalAdded = 0
       let totalRemoved = 0
@@ -205,6 +206,7 @@ class DiffService {
       return {
         repoState: 'ok',
         repoRoot,
+        branchName,
         totals: {
           files: orderedFiles.length,
           added: totalAdded,
@@ -316,6 +318,20 @@ class DiffService {
     }
 
     return [...files.values()]
+  }
+
+  private async getBranchName(repoRoot: string): Promise<string> {
+    try {
+      const { stdout } = await execFileAsync('git', ['-C', repoRoot, 'branch', '--show-current'])
+      const branch = stdout.trim()
+      if (branch) return branch
+
+      const detached = await execFileAsync('git', ['-C', repoRoot, 'rev-parse', '--short', 'HEAD'])
+      const sha = detached.stdout.trim()
+      return sha ? `detached@${sha}` : 'detached'
+    } catch {
+      return 'unknown'
+    }
   }
 
   private toDiffStatus(input: string): DiffFile['status'] {
