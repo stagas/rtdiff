@@ -225,8 +225,28 @@ function updateSection(view: FileView, file: DiffFile): void {
 
   const originalTokens = tokenizeLines(file.originalText, language)
   const modifiedTokens = tokenizeLines(file.modifiedText, language)
-  const hunkNodes = hunks.map((hunk) => renderHunk(hunk, originalTokens, modifiedTokens, layoutMode))
+  const orderedHunks = [...hunks].sort((a, b) => getHunkSortLine(a) - getHunkSortLine(b))
+  const hunkNodes = orderedHunks.map((hunk) => renderHunk(hunk, originalTokens, modifiedTokens, layoutMode))
   view.contentHost.replaceChildren(...hunkNodes)
+}
+
+function getHunkSortLine(hunk: DiffHunk): number {
+  let maxLine = 0
+
+  for (const row of hunk.rows) {
+    if (row.kind === 'context') continue
+    const candidate = row.rightLine ?? row.leftLine ?? 0
+    if (candidate > maxLine) maxLine = candidate
+  }
+
+  if (maxLine > 0) return maxLine
+
+  for (const row of hunk.rows) {
+    const candidate = row.rightLine ?? row.leftLine ?? 0
+    if (candidate > maxLine) maxLine = candidate
+  }
+
+  return maxLine
 }
 
 function renderHunk(

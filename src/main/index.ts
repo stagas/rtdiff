@@ -1,6 +1,6 @@
 import { app, shell, BrowserWindow, ipcMain, WebContents } from 'electron'
 import { dirname, extname, join, resolve } from 'node:path'
-import { access, readFile } from 'node:fs/promises'
+import { access, readFile, stat } from 'node:fs/promises'
 import { constants } from 'node:fs'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
@@ -188,17 +188,29 @@ class DiffService {
         totalRemoved += file.removed
       }
 
-      files.sort((a, b) => a.path.localeCompare(b.path))
+      const filesByRecency = await Promise.all(
+        files.map(async (file) => ({
+          file,
+          modifiedAtMs: await this.getFileModifiedAtMs(repoRoot, file)
+        }))
+      )
+
+      filesByRecency.sort((a, b) => {
+        if (b.modifiedAtMs !== a.modifiedAtMs) return b.modifiedAtMs - a.modifiedAtMs
+        return a.file.path.localeCompare(b.file.path)
+      })
+
+      const orderedFiles = filesByRecency.map((entry) => entry.file)
 
       return {
         repoState: 'ok',
         repoRoot,
         totals: {
-          files: files.length,
+          files: orderedFiles.length,
           added: totalAdded,
           removed: totalRemoved
         },
-        files,
+        files: orderedFiles,
         generatedAt: Date.now()
       }
     } catch (error) {
@@ -224,6 +236,21 @@ class DiffService {
       files: [],
       generatedAt: Date.now()
     }
+  }
+
+  private async getFileModifiedAtMs(repoRoot: string, file: DiffFile): Promise<number> {
+    const candidates = [file.path, file.originalPath].filter((value): value is string => Boolean(value))
+
+    for (const candidate of candidates) {
+      try {
+        const info = await stat(join(repoRoot, candidate))
+        return info.mtimeMs
+      } catch {
+        continue
+      }
+    }
+
+    return 0
   }
 
   private async findNearestRepoRoot(fromDir: string): Promise<string | null> {
@@ -445,7 +472,7 @@ function createWindow(): void {
   const mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
-    minWidth: 980,
+    minWidth: 640,
     minHeight: 680,
     show: false,
     autoHideMenuBar: true,
