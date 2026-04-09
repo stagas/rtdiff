@@ -203,6 +203,7 @@ function applySnapshot(nextSnapshot: DiffSnapshot): void {
   emptyState.hidden = true
   appRoot.classList.remove('has-empty-state')
   backButton.hidden = viewMode !== 'commit-diff'
+  sidebarRoot.classList.toggle('has-back', !backButton.hidden)
   if (viewMode !== 'commit-diff' && nextSnapshot.files.length > 0) {
     viewMode = 'working'
   }
@@ -266,6 +267,7 @@ function renderNotReady(nextSnapshot: DiffSnapshot): void {
 
   emptyState.hidden = false
   backButton.hidden = true
+  sidebarRoot.classList.remove('has-back')
   topbarHeading.hidden = true
   topbarHeading.textContent = ''
   viewMode = 'working'
@@ -278,6 +280,7 @@ function renderNotReady(nextSnapshot: DiffSnapshot): void {
 
 async function renderCommitList(): Promise<void> {
   backButton.hidden = true
+  sidebarRoot.classList.remove('has-back')
   topbarHeading.hidden = true
   topbarHeading.textContent = ''
   syncCommitAvailability(snapshot ?? { repoState: 'error', totals: { files: 0, added: 0, removed: 0 }, files: [], generatedAt: Date.now() })

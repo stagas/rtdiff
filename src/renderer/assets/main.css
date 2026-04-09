@@ -67,13 +67,18 @@ body {
   min-height: 58px;
 }
 
+.sidebar.has-back {
+  grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+}
+
 .top-left {
   grid-column: 1;
   grid-row: 1;
   display: flex;
   align-items: center;
+  justify-content: center;
+  align-self: center;
   padding-left: 6px;
-  z-index: 2;
 }
 
 #back-button {
@@ -247,6 +252,22 @@ body {
   grid-column: 1;
   grid-row: 1;
   scrollbar-width: none;
+}
+
+.sidebar.has-back .totals {
+  grid-column: 3;
+}
+
+.sidebar.has-back .sidebar-commit {
+  grid-column: 4;
+}
+
+.sidebar.has-back .sidebar-actions {
+  grid-column: 5;
+}
+
+.sidebar.has-back .file-list {
+  grid-column: 2;
 }
 
 .topbar-heading {

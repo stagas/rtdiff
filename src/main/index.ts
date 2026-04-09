@@ -306,8 +306,8 @@ Keep the message concise. You may add an optional body after an empty line.`
       const snapshot: DiffSnapshot = {
         repoState: 'ok',
         repoRoot,
-        branchName: `${branchName} • ${commitInfo.shortSha} ${commitInfo.subject}`,
-        message: commitInfo.subject || commitInfo.shortSha,
+        branchName,
+        message: commitInfo.subject ? `${commitInfo.shortSha} ${commitInfo.subject}` : commitInfo.shortSha,
         totals: {
           files: diffFiles.length,
           added: totalAdded,
