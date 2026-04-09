@@ -362,7 +362,12 @@ function renderCommitListItem(commit: CommitListItem): string {
 async function openCommitDiff(sha: string): Promise<void> {
   emptyState.hidden = false
   appRoot.classList.add('has-empty-state')
-  emptyState.textContent = 'Loading commit diff...'
+  emptyState.innerHTML = `
+    <span class="empty-loading">
+      <span class="spinner" aria-hidden="true"></span>
+      <span>Loading commit diff...</span>
+    </span>
+  `
 
   const result = await window.api.getCommitSnapshot(sha)
   if (!result.ok || !result.snapshot) {
