@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, WebContents, screen } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, WebContents, screen, Menu } from 'electron'
 import { dirname, extname, join, resolve } from 'node:path'
 import { access, readFile, stat } from 'node:fs/promises'
 import { constants } from 'node:fs'
@@ -19,7 +19,10 @@ const DIFF_COMMIT_CHANNEL = 'diff:commit'
 const DIFF_GENERATE_COMMIT_MESSAGE_CHANNEL = 'diff:generateCommitMessage'
 const DIFF_GET_COMMIT_HISTORY_CHANNEL = 'diff:getCommitHistory'
 const DIFF_GET_COMMIT_SNAPSHOT_CHANNEL = 'diff:getCommitSnapshot'
+const SETTINGS_SET_OPENROUTER_API_KEY_CHANNEL = 'settings:setOpenRouterApiKey'
+const SETTINGS_PROMPT_OPENROUTER_API_KEY_CHANNEL = 'settings:promptOpenRouterApiKey'
 const WINDOW_STATE_KEY = 'window:main'
+const OPENROUTER_API_KEY_KEY = 'openrouter:apiKey'
 
 const BINARY_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.pdf', '.zip', '.gz'])
 
@@ -45,6 +48,8 @@ interface WindowState {
 }
 
 let windowStateDb: ReturnType<typeof open<WindowState>> | null = null
+let settingsDb: ReturnType<typeof open<string>> | null = null
+let appMenu: Menu | null = null
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value)
@@ -122,6 +127,50 @@ function saveWindowState(mainWindow: BrowserWindow, options?: { sync?: boolean }
   void windowStateDb.put(WINDOW_STATE_KEY, nextState)
 }
 
+function getStoredOpenRouterApiKey(): string | null {
+  if (!settingsDb) return null
+  const value = settingsDb.get(OPENROUTER_API_KEY_KEY)
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function setStoredOpenRouterApiKey(value: string): void {
+  if (!settingsDb) return
+  const trimmed = value.trim()
+  if (!trimmed) return
+  settingsDb.putSync(OPENROUTER_API_KEY_KEY, trimmed)
+}
+
+function installAppMenu(mainWindow: BrowserWindow): void {
+  const template: Electron.MenuItemConstructorOptions[] = [
+    {
+      label: 'File',
+      submenu: [{ role: 'quit' }]
+    },
+    {
+      label: 'Settings',
+      submenu: [
+        {
+          label: 'Enter OpenRouter API Key',
+          click: () => {
+            mainWindow.webContents.send(SETTINGS_PROMPT_OPENROUTER_API_KEY_CHANNEL)
+          }
+        }
+      ]
+    },
+    {
+      label: 'View',
+      submenu: [{ role: 'reload' }, { role: 'forceReload' }, { role: 'toggleDevTools' }]
+    }
+  ]
+
+  const menu = Menu.buildFromTemplate(template)
+  appMenu = menu
+  Menu.setApplicationMenu(menu)
+  if (process.platform !== 'darwin') {
+    mainWindow.setMenu(menu)
+  }
+}
+
 class DiffService {
   private snapshot: DiffSnapshot = this.createEmptySnapshot('not_in_repo', 'Not inside a git repository')
   private watcher: FSWatcher | null = null
@@ -173,9 +222,9 @@ class DiffService {
       return { ok: false, error: 'Not inside a git repository.' }
     }
 
-    const apiKey = process.env.OPENROUTER_API_KEY
+    const apiKey = process.env.OPENROUTER_API_KEY || getStoredOpenRouterApiKey()
     if (!apiKey) {
-      return { ok: false, error: 'OPENROUTER_API_KEY is not set.' }
+      return { ok: false, error: 'OPENROUTER_API_KEY is not set and no stored key was found.' }
     }
 
     try {
@@ -964,6 +1013,8 @@ function createWindow(): void {
     }
   })
 
+  installAppMenu(mainWindow)
+
   mainWindow.on('ready-to-show', () => {
     if (windowState.isMaximized) {
       mainWindow.maximize()
@@ -973,6 +1024,28 @@ function createWindow(): void {
     }
     mainWindow.show()
   })
+
+  if (process.platform !== 'darwin') {
+    let altMenuOpen = false
+    mainWindow.webContents.on('before-input-event', (_event, input) => {
+      const isAlt = input.key === 'Alt' || input.code === 'AltLeft' || input.code === 'AltRight'
+      if (input.type === 'keyDown' && isAlt && !altMenuOpen && appMenu) {
+        altMenuOpen = true
+        appMenu.popup({ window: mainWindow })
+      }
+      if (input.type === 'keyUp' && isAlt) {
+        altMenuOpen = false
+      }
+    })
+    mainWindow.on('blur', () => {
+      altMenuOpen = false
+    })
+    mainWindow.webContents.on('context-menu', () => {
+      if (appMenu) {
+        appMenu.popup({ window: mainWindow })
+      }
+    })
+  }
 
   mainWindow.on('move', () => saveWindowState(mainWindow))
   mainWindow.on('resize', () => saveWindowState(mainWindow))
@@ -997,6 +1070,9 @@ function createWindow(): void {
 app.whenReady().then(async () => {
   windowStateDb = open<WindowState>({
     path: join(app.getPath('userData'), 'state.lmdb')
+  })
+  settingsDb = open<string>({
+    path: join(app.getPath('userData'), 'settings.lmdb')
   })
 
   electronApp.setAppUserModelId('com.electron')
@@ -1058,6 +1134,18 @@ app.whenReady().then(async () => {
     return diffService.getCommitSnapshot(sha)
   })
 
+  ipcMain.handle(SETTINGS_SET_OPENROUTER_API_KEY_CHANNEL, async (_event, value: unknown) => {
+    if (typeof value !== 'string') {
+      return { ok: false, error: 'Invalid API key.' }
+    }
+    const trimmed = value.trim()
+    if (!trimmed) {
+      return { ok: false, error: 'API key is required.' }
+    }
+    setStoredOpenRouterApiKey(trimmed)
+    return { ok: true }
+  })
+
   ipcMain.on(DIFF_SUBSCRIBE_CHANNEL, (event) => {
     diffService?.subscribe(event.sender)
   })
@@ -1074,6 +1162,8 @@ app.on('before-quit', () => {
     saveWindowState(window, { sync: true })
   }
   diffService?.dispose()
+  settingsDb?.close()
+  settingsDb = null
   windowStateDb?.close()
   windowStateDb = null
 })

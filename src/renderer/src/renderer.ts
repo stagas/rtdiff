@@ -67,9 +67,18 @@ const commitGenerateLabel = commitGenerate.querySelector('.label') as HTMLSpanEl
 const commitConfirm = document.getElementById('commit-confirm') as HTMLButtonElement
 const commitCancel = document.getElementById('commit-cancel') as HTMLButtonElement
 const commitError = document.getElementById('commit-error') as HTMLElement
+const apiKeyModal = document.getElementById('api-key-modal') as HTMLElement
+const apiKeyBackdrop = document.getElementById('api-key-backdrop') as HTMLElement
+const apiKeyInput = document.getElementById('api-key-input') as HTMLInputElement
+const apiKeySave = document.getElementById('api-key-save') as HTMLButtonElement
+const apiKeyCancel = document.getElementById('api-key-cancel') as HTMLButtonElement
+const apiKeyError = document.getElementById('api-key-error') as HTMLElement
 
 function init(): void {
   updateLayoutToggle()
+  window.api.onPromptOpenRouterApiKey(() => {
+    openApiKeyModal()
+  })
 
   modeButton.addEventListener('click', () => {
     layoutMode = layoutMode === 'side-by-side' ? 'inline' : 'side-by-side'
@@ -100,12 +109,64 @@ function init(): void {
     void submitCommit()
   })
   window.addEventListener('keydown', (event) => {
-    if (event.key !== 'Escape' || commitModal.hidden) return
-    closeCommitModal()
+    if (event.key !== 'Escape') return
+    if (!commitModal.hidden) {
+      closeCommitModal()
+      return
+    }
+    if (!apiKeyModal.hidden) {
+      closeApiKeyModal()
+    }
+  })
+  apiKeyBackdrop.addEventListener('click', closeApiKeyModal)
+  apiKeyCancel.addEventListener('click', closeApiKeyModal)
+  apiKeySave.addEventListener('click', () => {
+    void saveApiKey()
   })
 
   sectionsScroller.addEventListener('scroll', onScrollActiveSection)
   void boot()
+}
+
+function openApiKeyModal(): void {
+  apiKeyModal.hidden = false
+  apiKeyError.hidden = true
+  apiKeyError.textContent = ''
+  apiKeyInput.value = ''
+  apiKeySave.disabled = false
+  apiKeyCancel.disabled = false
+  requestAnimationFrame(() => {
+    apiKeyInput.focus()
+  })
+}
+
+function closeApiKeyModal(): void {
+  apiKeyModal.hidden = true
+}
+
+async function saveApiKey(): Promise<void> {
+  const value = apiKeyInput.value.trim()
+  if (!value) {
+    apiKeyError.hidden = false
+    apiKeyError.textContent = 'API key is required.'
+    return
+  }
+
+  apiKeySave.disabled = true
+  apiKeyCancel.disabled = true
+  apiKeyError.hidden = true
+  apiKeyError.textContent = ''
+
+  const result = await window.api.setOpenRouterApiKey(value)
+  if (!result.ok) {
+    apiKeySave.disabled = false
+    apiKeyCancel.disabled = false
+    apiKeyError.hidden = false
+    apiKeyError.textContent = result.error ?? 'Failed to save API key.'
+    return
+  }
+
+  closeApiKeyModal()
 }
 
 function updateLayoutToggle(): void {

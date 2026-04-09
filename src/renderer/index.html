@@ -1,97 +1,124 @@
 <!doctype html>
 <html>
-  <head>
-    <meta charset="UTF-8" />
-    <title>RTDiff</title>
-    <meta
-      http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; worker-src 'self' blob:"
-    />
-    <link href="./assets/main.css" type="text/css" rel="stylesheet" />
-  </head>
-  <body>
-    <div id="app" class="layout">
-      <aside class="sidebar">
-        <div class="top-left">
-          <button id="back-button" type="button" aria-label="Back" hidden>
+
+<head>
+  <meta charset="UTF-8" />
+  <title>RTDiff</title>
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; worker-src 'self' blob:" />
+  <link href="./assets/main.css" type="text/css" rel="stylesheet" />
+</head>
+
+<body>
+  <div id="app" class="layout">
+    <aside class="sidebar">
+      <div class="top-left">
+        <button id="back-button" type="button" aria-label="Back" hidden>
+          <svg viewBox="0 0 16 16" width="12" height="12" focusable="false" aria-hidden="true">
+            <path d="M10.5 3.5 6 8l4.5 4.5" fill="none" stroke="currentColor" stroke-linecap="round"
+              stroke-linejoin="round" stroke-width="1.4" />
+          </svg>
+        </button>
+      </div>
+      <div class="totals">
+        <div class="total-inline">
+          <span class="metric"><strong id="branch-name">unknown</strong></span>
+          <span class="metric"><strong id="total-added" class="added">0</strong></span>
+          <span class="metric"><strong id="total-removed" class="removed">0</strong></span>
+        </div>
+      </div>
+
+      <div class="sidebar-commit">
+        <button id="commit-button" type="button" aria-label="Open commit dialog">
+          <svg viewBox="0 0 16 16" width="12" height="12" focusable="false" aria-hidden="true">
+            <circle cx="4.5" cy="12" r="1.5" fill="none" stroke="currentColor" stroke-linecap="round"
+              stroke-linejoin="round" stroke-width="1" />
+            <circle cx="4.5" cy="4" r="1.5" fill="none" stroke="currentColor" stroke-linecap="round"
+              stroke-linejoin="round" stroke-width="1" />
+            <line x1="4.5" y1="5.5" x2="4.5" y2="10.5" fill="none" stroke="currentColor" stroke-linecap="round"
+              stroke-linejoin="round" stroke-width="1" />
+            <circle cx="12.5" cy="12" r="1.5" fill="none" stroke="currentColor" stroke-linecap="round"
+              stroke-linejoin="round" stroke-width="1" />
+            <path d="M12.5 10.5V6.9a1 1 0 0 0-.3-.7L9 3" fill="none" stroke="currentColor" stroke-linecap="round"
+              stroke-linejoin="round" stroke-width="1" />
+            <polyline points="9 6 9 3 12 3" fill="none" stroke="currentColor" stroke-linecap="round"
+              stroke-linejoin="round" stroke-width="1" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="sidebar-actions">
+        <button id="layout-toggle" type="button" aria-label="Toggle diff layout mode">
+          <span class="layout-icon layout-sbs" aria-hidden="true">
             <svg viewBox="0 0 16 16" width="12" height="12" focusable="false" aria-hidden="true">
-              <path d="M10.5 3.5 6 8l4.5 4.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.4" />
+              <rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="none" stroke="currentColor"
+                stroke-width="1.2" />
+              <line x1="8" y1="2.6" x2="8" y2="13.4" stroke="currentColor" stroke-width="1.2" />
             </svg>
-          </button>
-        </div>
-        <div class="totals">
-          <div class="total-inline">
-            <span class="metric"><strong id="branch-name">unknown</strong></span>
-            <span class="metric"><strong id="total-added" class="added">0</strong></span>
-            <span class="metric"><strong id="total-removed" class="removed">0</strong></span>
-          </div>
-        </div>
-
-        <div class="sidebar-commit">
-          <button id="commit-button" type="button" aria-label="Open commit dialog">
+          </span>
+          <span class="layout-icon layout-inline" aria-hidden="true">
             <svg viewBox="0 0 16 16" width="12" height="12" focusable="false" aria-hidden="true">
-              <circle cx="4.5" cy="12" r="1.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" />
-              <circle cx="4.5" cy="4" r="1.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" />
-              <line x1="4.5" y1="5.5" x2="4.5" y2="10.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" />
-              <circle cx="12.5" cy="12" r="1.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" />
-              <path d="M12.5 10.5V6.9a1 1 0 0 0-.3-.7L9 3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" />
-              <polyline points="9 6 9 3 12 3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" />
+              <rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="none" stroke="currentColor"
+                stroke-width="1.2" />
+              <line x1="4" y1="6" x2="12" y2="6" stroke="currentColor" stroke-width="1.2" />
+              <line x1="4" y1="10" x2="12" y2="10" stroke="currentColor" stroke-width="1.2" />
             </svg>
+          </span>
+        </button>
+      </div>
+
+      <div id="file-list" class="file-list"></div>
+      <div id="topbar-heading" class="topbar-heading" hidden></div>
+    </aside>
+
+    <main id="diff-scroller" class="diff-scroller">
+      <p id="empty-state" class="empty-state" hidden></p>
+      <div id="diff-sections" class="diff-sections"></div>
+    </main>
+  </div>
+
+  <div id="commit-modal" class="commit-modal" hidden>
+    <div id="commit-backdrop" class="commit-backdrop"></div>
+    <section class="commit-dialog" role="dialog" aria-modal="true" aria-labelledby="commit-title">
+      <div class="commit-header">
+        <h2 id="commit-title">Commit Changes</h2>
+        <div class="commit-tools">
+          <button id="commit-generate" type="button" aria-label="Generate commit message">
+            <span class="spinner" aria-hidden="true"></span>
+            <svg viewBox="0 0 16 16" width="12" height="12" focusable="false" aria-hidden="true">
+              <path
+                d="M8 1.8 9.4 5l3.3 1.4-3.3 1.4L8 11l-1.4-3.2L3.3 6.4 6.6 5zM12.2 9.5l.8 1.8 1.8.8-1.8.8-.8 1.8-.8-1.8-1.8-.8 1.8-.8zM3.6 9.8l.6 1.3 1.3.6-1.3.6-.6 1.3-.6-1.3-1.3-.6 1.3-.6z"
+                fill="currentColor" />
+            </svg>
+            <span class="label">Generate</span>
           </button>
         </div>
+      </div>
+      <textarea id="commit-message" rows="6" placeholder="Commit message"></textarea>
+      <p id="commit-error" class="commit-error" hidden></p>
+      <div class="commit-actions">
+        <button id="commit-confirm" type="button">Commit</button>
+        <button id="commit-cancel" type="button">Cancel</button>
+      </div>
+    </section>
+  </div>
 
-        <div class="sidebar-actions">
-          <button id="layout-toggle" type="button" aria-label="Toggle diff layout mode">
-            <span class="layout-icon layout-sbs" aria-hidden="true">
-              <svg viewBox="0 0 16 16" width="12" height="12" focusable="false" aria-hidden="true">
-                <rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.2" />
-                <line x1="8" y1="2.6" x2="8" y2="13.4" stroke="currentColor" stroke-width="1.2" />
-              </svg>
-            </span>
-            <span class="layout-icon layout-inline" aria-hidden="true">
-              <svg viewBox="0 0 16 16" width="12" height="12" focusable="false" aria-hidden="true">
-                <rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.2" />
-                <line x1="4" y1="6" x2="12" y2="6" stroke="currentColor" stroke-width="1.2" />
-                <line x1="4" y1="10" x2="12" y2="10" stroke="currentColor" stroke-width="1.2" />
-              </svg>
-            </span>
-          </button>
-        </div>
+  <div id="api-key-modal" class="commit-modal" hidden>
+    <div id="api-key-backdrop" class="commit-backdrop"></div>
+    <section class="commit-dialog" role="dialog" aria-modal="true" aria-labelledby="api-key-title">
+      <div class="commit-header">
+        <h2 id="api-key-title">Enter OpenRouter API Key</h2>
+      </div>
+      <input id="api-key-input" type="text" spellcheck="false" placeholder="sk-or-v1-..." />
+      <p id="api-key-error" class="commit-error" hidden></p>
+      <div class="commit-actions">
+        <button id="api-key-save" type="button">Save</button>
+        <button id="api-key-cancel" type="button">Cancel</button>
+      </div>
+    </section>
+  </div>
 
-        <div id="file-list" class="file-list"></div>
-        <div id="topbar-heading" class="topbar-heading" hidden></div>
-      </aside>
+  <script type="module" src="./src/renderer.ts"></script>
+</body>
 
-      <main id="diff-scroller" class="diff-scroller">
-        <p id="empty-state" class="empty-state" hidden></p>
-        <div id="diff-sections" class="diff-sections"></div>
-      </main>
-    </div>
-
-    <div id="commit-modal" class="commit-modal" hidden>
-      <div id="commit-backdrop" class="commit-backdrop"></div>
-      <section class="commit-dialog" role="dialog" aria-modal="true" aria-labelledby="commit-title">
-        <div class="commit-header">
-          <h2 id="commit-title">Commit Changes</h2>
-          <div class="commit-tools">
-            <button id="commit-generate" type="button" aria-label="Generate commit message">
-              <span class="spinner" aria-hidden="true"></span>
-              <svg viewBox="0 0 16 16" width="12" height="12" focusable="false" aria-hidden="true">
-                <path d="M8 1.8 9.4 5l3.3 1.4-3.3 1.4L8 11l-1.4-3.2L3.3 6.4 6.6 5zM12.2 9.5l.8 1.8 1.8.8-1.8.8-.8 1.8-.8-1.8-1.8-.8 1.8-.8zM3.6 9.8l.6 1.3 1.3.6-1.3.6-.6 1.3-.6-1.3-1.3-.6 1.3-.6z" fill="currentColor" />
-              </svg>
-              <span class="label">Generate</span>
-            </button>
-          </div>
-        </div>
-        <textarea id="commit-message" rows="6" placeholder="Commit message"></textarea>
-        <p id="commit-error" class="commit-error" hidden></p>
-        <div class="commit-actions">
-          <button id="commit-confirm" type="button">Commit</button>
-          <button id="commit-cancel" type="button">Cancel</button>
-        </div>
-      </section>
-    </div>
-
-    <script type="module" src="./src/renderer.ts"></script>
-  </body>
 </html>

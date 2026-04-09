@@ -8,6 +8,8 @@ interface RTDiffAPI {
   generateCommitMessage: () => Promise<{ ok: boolean; message?: string; error?: string }>
   getCommitHistory: () => Promise<{ ok: boolean; commits?: CommitListItem[]; error?: string }>
   getCommitSnapshot: (sha: string) => Promise<{ ok: boolean; snapshot?: DiffSnapshot; error?: string }>
+  setOpenRouterApiKey: (value: string) => Promise<{ ok: boolean; error?: string }>
+  onPromptOpenRouterApiKey: (listener: () => void) => () => void
 }
 
 declare global {

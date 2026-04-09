@@ -835,6 +835,26 @@ body {
   box-shadow: none;
 }
 
+.commit-dialog input {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-muted);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px;
+  font-family: inherit;
+  font-size: 12px;
+  outline: none;
+  box-shadow: none;
+}
+
+.commit-dialog input:focus,
+.commit-dialog input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
 .commit-actions {
   display: flex;
   justify-content: flex-end;

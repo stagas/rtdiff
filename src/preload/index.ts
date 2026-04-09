@@ -11,6 +11,17 @@ const api = {
     ipcRenderer.invoke('diff:getCommitHistory'),
   getCommitSnapshot: (sha: string): Promise<{ ok: boolean; snapshot?: DiffSnapshot; error?: string }> =>
     ipcRenderer.invoke('diff:getCommitSnapshot', sha),
+  setOpenRouterApiKey: (value: string): Promise<{ ok: boolean; error?: string }> =>
+    ipcRenderer.invoke('settings:setOpenRouterApiKey', value),
+  onPromptOpenRouterApiKey: (listener: () => void): (() => void) => {
+    const wrapped = (): void => {
+      listener()
+    }
+    ipcRenderer.on('settings:promptOpenRouterApiKey', wrapped)
+    return () => {
+      ipcRenderer.off('settings:promptOpenRouterApiKey', wrapped)
+    }
+  },
   onSnapshot: (listener: (snapshot: DiffSnapshot) => void): (() => void) => {
     const wrapped = (_event: Electron.IpcRendererEvent, snapshot: DiffSnapshot): void => {
       listener(snapshot)
