@@ -1,4 +1,4 @@
-name: Release
+name: Build and Release
 
 on:
   push:
@@ -11,8 +11,8 @@ permissions:
   contents: write
 
 jobs:
-  publish:
-    name: Publish (${{ matrix.os }})
+  build:
+    name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -52,21 +52,21 @@ jobs:
           chmod +x node_modules/app-builder-bin/linux/x64/app-builder || true
           chmod +x node_modules/7zip-bin/linux/x64/7za || true
 
-      - name: Build and publish
+      - name: Build packages
         shell: bash
         run: |
           case "${{ matrix.os }}" in
             macos-latest)
               bun run build
-              CSC_IDENTITY_AUTO_DISCOVERY=false bunx electron-builder --mac --publish always
+              CSC_IDENTITY_AUTO_DISCOVERY=false bunx electron-builder --mac --publish never
               ;;
             ubuntu-latest)
               bun run build
-              bunx electron-builder --linux AppImage deb --publish always
+              bunx electron-builder --linux AppImage deb --publish never
               ;;
             windows-latest)
               bun run build
-              bunx electron-builder --win --publish always
+              bunx electron-builder --win --publish never
               ;;
           esac
         env:
@@ -74,3 +74,58 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.os }}
+          path: |
+            dist/*.dmg
+            dist/*.zip
+            dist/*.exe
+            dist/*.AppImage
+            dist/*.deb
+            dist/*.blockmap
+            dist/latest*.yml
+            dist/latest*.yaml
+          if-no-files-found: ignore
+          retention-days: 7
+
+  release:
+    name: Update GitHub Release
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+          pattern: release-*
+          merge-multiple: true
+
+      - name: Build changelog
+        id: changelog
+        uses: ardalanamini/auto-changelog@v4
+        continue-on-error: true
+        with:
+          mention-authors: false
+          mention-new-contributors: false
+          include-compare-link: false
+          semver: true
+
+      - name: Create or update release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: ${{ steps.changelog.outputs.changelog }}
+          generateReleaseNotes: true
+          artifacts: release-artifacts/**/*
+          artifactErrorsFailBuild: true
+          allowUpdates: true
+          replacesArtifacts: true
+          removeArtifacts: true
+          token: ${{ secrets.GITHUB_TOKEN }}
