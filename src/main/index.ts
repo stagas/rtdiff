@@ -263,7 +263,7 @@ Keep the message concise. You may add an optional body after an empty line.`
         '--max-count',
         String(limit),
         '--date=iso-strict',
-        '--pretty=format:%H%x1f%h%x1f%s%x1f%an%x1f%ad%x1e',
+        '--pretty=format:%x1e%H%x1f%h%x1f%s%x1f%an%x1f%ad',
         '--numstat'
       ])
 
@@ -614,7 +614,10 @@ Keep the message concise. You may add an optional body after an empty line.`
   }
 
   private parseCommitHistory(logOutput: string): CommitListItem[] {
-    const records = logOutput.split('\x1e').map((record) => record.trim()).filter(Boolean)
+    const records = logOutput
+      .split('\x1e')
+      .map((record) => record.trim())
+      .filter(Boolean)
     const commits: CommitListItem[] = []
 
     for (const record of records) {
