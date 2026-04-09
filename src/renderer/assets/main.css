@@ -136,6 +136,16 @@ body {
   display: none;
 }
 
+.total-inline.branch-only {
+  gap: 0;
+  padding-right: 7px;
+}
+
+.sidebar-commit[hidden],
+.sidebar-actions[hidden] {
+  display: none !important;
+}
+
 .added {
   color: var(--green);
 }
