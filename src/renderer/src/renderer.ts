@@ -49,6 +49,9 @@ const sidebarList = document.getElementById('file-list') as HTMLElement
 const branchName = document.getElementById('branch-name') as HTMLElement
 const totalAdded = document.getElementById('total-added') as HTMLElement
 const totalRemoved = document.getElementById('total-removed') as HTMLElement
+const totalsInline = document.querySelector('.total-inline') as HTMLElement
+const sidebarCommit = document.querySelector('.sidebar-commit') as HTMLElement
+const sidebarActions = document.querySelector('.sidebar-actions') as HTMLElement
 const sectionsRoot = document.getElementById('diff-sections') as HTMLElement
 const emptyState = document.getElementById('empty-state') as HTMLElement
 const modeButton = document.getElementById('layout-toggle') as HTMLButtonElement
@@ -253,6 +256,8 @@ function applySnapshot(nextSnapshot: DiffSnapshot): void {
   } else {
     syncActiveStyles()
   }
+
+  updateTopbarControls(nextSnapshot)
 }
 
 function updateSummary(nextSnapshot: DiffSnapshot): void {
@@ -286,6 +291,7 @@ function renderNotReady(nextSnapshot: DiffSnapshot): void {
     nextSnapshot.repoState === 'not_in_repo'
       ? 'Not inside a git repository. Move into a git project or initialize one.'
       : nextSnapshot.message ?? 'Failed to read git state.'
+  updateTopbarControls(nextSnapshot)
 }
 
 async function renderCommitList(): Promise<void> {
@@ -295,6 +301,7 @@ async function renderCommitList(): Promise<void> {
   topbarHeading.textContent = ''
   activeCommitSha = null
   syncCommitAvailability(snapshot ?? { repoState: 'error', totals: { files: 0, added: 0, removed: 0 }, files: [], generatedAt: Date.now() })
+  updateTopbarControls(snapshot ?? { repoState: 'error', totals: { files: 0, added: 0, removed: 0 }, files: [], generatedAt: Date.now() })
   const result = await window.api.getCommitHistory()
   if (!result.ok || !result.commits) {
     emptyState.hidden = false
@@ -326,6 +333,13 @@ async function renderCommitList(): Promise<void> {
       void openCommitDiff(sha)
     })
   }
+}
+
+function updateTopbarControls(nextSnapshot: DiffSnapshot): void {
+  const showFullControls = viewMode === 'commit-diff' || (nextSnapshot.repoState === 'ok' && nextSnapshot.files.length > 0)
+  sidebarCommit.hidden = !showFullControls
+  sidebarActions.hidden = !showFullControls
+  totalsInline.classList.toggle('branch-only', !showFullControls)
 }
 
 function renderCommitListItem(commit: CommitListItem): string {

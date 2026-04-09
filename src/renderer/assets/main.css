@@ -131,6 +131,11 @@ body {
   min-width: 0;
 }
 
+.total-inline.branch-only #total-added,
+.total-inline.branch-only #total-removed {
+  display: none;
+}
+
 .added {
   color: var(--green);
 }
