@@ -307,7 +307,7 @@ Keep the message concise. You may add an optional body after an empty line.`
         repoState: 'ok',
         repoRoot,
         branchName: `${branchName} • ${commitInfo.shortSha} ${commitInfo.subject}`,
-        message: `Commit ${commitInfo.shortSha} by ${commitInfo.authorName} on ${commitInfo.committedAt}`,
+        message: commitInfo.subject || commitInfo.shortSha,
         totals: {
           files: diffFiles.length,
           added: totalAdded,

@@ -13,7 +13,11 @@
     <div id="app" class="layout">
       <aside class="sidebar">
         <div class="top-left">
-          <button id="back-button" type="button" hidden>Back</button>
+          <button id="back-button" type="button" aria-label="Back" hidden>
+            <svg viewBox="0 0 16 16" width="12" height="12" focusable="false" aria-hidden="true">
+              <path d="M10.5 3.5 6 8l4.5 4.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.4" />
+            </svg>
+          </button>
         </div>
         <div class="totals">
           <div class="total-inline">
@@ -55,6 +59,7 @@
         </div>
 
         <div id="file-list" class="file-list"></div>
+        <div id="topbar-heading" class="topbar-heading" hidden></div>
       </aside>
 
       <main id="diff-scroller" class="diff-scroller">

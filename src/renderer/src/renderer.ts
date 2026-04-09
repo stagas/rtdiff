@@ -35,6 +35,7 @@ let viewMode: 'working' | 'commit-list' | 'commit-diff' = 'working'
 let latestWorkingSnapshot: DiffSnapshot | null = null
 
 const appRoot = document.getElementById('app') as HTMLElement
+const sidebarRoot = document.querySelector('.sidebar') as HTMLElement
 const sidebarList = document.getElementById('file-list') as HTMLElement
 const branchName = document.getElementById('branch-name') as HTMLElement
 const totalAdded = document.getElementById('total-added') as HTMLElement
@@ -44,6 +45,7 @@ const emptyState = document.getElementById('empty-state') as HTMLElement
 const modeButton = document.getElementById('layout-toggle') as HTMLButtonElement
 const commitButton = document.getElementById('commit-button') as HTMLButtonElement
 const backButton = document.getElementById('back-button') as HTMLButtonElement
+const topbarHeading = document.getElementById('topbar-heading') as HTMLElement
 const sectionsScroller = document.getElementById('diff-scroller') as HTMLElement
 const commitModal = document.getElementById('commit-modal') as HTMLElement
 const commitBackdrop = document.getElementById('commit-backdrop') as HTMLElement
@@ -191,6 +193,7 @@ function applySnapshot(nextSnapshot: DiffSnapshot): void {
   snapshot = nextSnapshot
   updateSummary(nextSnapshot)
   syncCommitAvailability(nextSnapshot)
+  updateTopbarHeading(nextSnapshot)
 
   if (nextSnapshot.repoState !== 'ok') {
     renderNotReady(nextSnapshot)
@@ -263,6 +266,8 @@ function renderNotReady(nextSnapshot: DiffSnapshot): void {
 
   emptyState.hidden = false
   backButton.hidden = true
+  topbarHeading.hidden = true
+  topbarHeading.textContent = ''
   viewMode = 'working'
   appRoot.classList.add('has-empty-state')
   emptyState.textContent =
@@ -273,6 +278,8 @@ function renderNotReady(nextSnapshot: DiffSnapshot): void {
 
 async function renderCommitList(): Promise<void> {
   backButton.hidden = true
+  topbarHeading.hidden = true
+  topbarHeading.textContent = ''
   syncCommitAvailability(snapshot ?? { repoState: 'error', totals: { files: 0, added: 0, removed: 0 }, files: [], generatedAt: Date.now() })
   const result = await window.api.getCommitHistory()
   if (!result.ok || !result.commits) {
@@ -337,6 +344,20 @@ async function openCommitDiff(sha: string): Promise<void> {
 
   viewMode = 'commit-diff'
   applySnapshot(result.snapshot)
+}
+
+function updateTopbarHeading(nextSnapshot: DiffSnapshot): void {
+  const message = nextSnapshot.message?.trim() ?? ''
+  if (viewMode === 'commit-diff' && message) {
+    topbarHeading.hidden = false
+    topbarHeading.textContent = message
+    sidebarRoot.classList.add('has-heading')
+    return
+  }
+
+  topbarHeading.hidden = true
+  topbarHeading.textContent = ''
+  sidebarRoot.classList.remove('has-heading')
 }
 
 function upsertView(file: DiffFile): FileView {
