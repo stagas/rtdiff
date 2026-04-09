@@ -259,6 +259,10 @@ async function boot(): Promise<void> {
   window.api.onSnapshot((nextSnapshot) => {
     latestWorkingSnapshot = nextSnapshot
     if (viewMode === 'commit-diff') return
+    if (nextSnapshot.repoState === 'ok' && nextSnapshot.files.length > 0) {
+      viewMode = 'working'
+      activeCommitSha = null
+    }
     applySnapshot(nextSnapshot)
   })
 }
