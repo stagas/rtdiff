@@ -97,6 +97,10 @@ body {
   -webkit-app-region: no-drag;
 }
 
+#back-button[hidden] {
+  display: none !important;
+}
+
 #back-button:hover {
   background: var(--panel-elev-2);
 }

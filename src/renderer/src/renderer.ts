@@ -33,6 +33,7 @@ let activePath: string | null = null
 let highlighter: Highlighter | null = null
 let viewMode: 'working' | 'commit-list' | 'commit-diff' = 'working'
 let latestWorkingSnapshot: DiffSnapshot | null = null
+let activeCommitSha: string | null = null
 
 const appRoot = document.getElementById('app') as HTMLElement
 const sidebarRoot = document.querySelector('.sidebar') as HTMLElement
@@ -70,6 +71,7 @@ function init(): void {
 
   commitButton.addEventListener('click', openCommitModal)
   backButton.addEventListener('click', () => {
+    activeCommitSha = null
     viewMode = 'commit-list'
     if (latestWorkingSnapshot) {
       if (latestWorkingSnapshot.files.length > 0) {
@@ -184,7 +186,7 @@ async function boot(): Promise<void> {
 
   window.api.onSnapshot((nextSnapshot) => {
     latestWorkingSnapshot = nextSnapshot
-    if (viewMode === 'commit-diff') return
+    if (viewMode === 'commit-diff' && nextSnapshot.files.length === 0) return
     applySnapshot(nextSnapshot)
   })
 }
@@ -202,11 +204,12 @@ function applySnapshot(nextSnapshot: DiffSnapshot): void {
 
   emptyState.hidden = true
   appRoot.classList.remove('has-empty-state')
-  backButton.hidden = viewMode !== 'commit-diff'
-  sidebarRoot.classList.toggle('has-back', !backButton.hidden)
-  if (viewMode !== 'commit-diff' && nextSnapshot.files.length > 0) {
+  if (nextSnapshot.files.length > 0) {
+    activeCommitSha = null
     viewMode = 'working'
   }
+  backButton.hidden = !(viewMode === 'commit-diff' && Boolean(activeCommitSha))
+  sidebarRoot.classList.toggle('has-back', !backButton.hidden)
 
   const incomingPaths = new Set(nextSnapshot.files.map((file) => file.path))
   for (const [path, view] of fileViews) {
@@ -230,6 +233,7 @@ function applySnapshot(nextSnapshot: DiffSnapshot): void {
       emptyState.textContent = 'No file changes in this commit.'
       appRoot.classList.add('has-empty-state')
     } else {
+      activeCommitSha = null
       viewMode = 'commit-list'
       void renderCommitList()
     }
@@ -270,6 +274,7 @@ function renderNotReady(nextSnapshot: DiffSnapshot): void {
   sidebarRoot.classList.remove('has-back')
   topbarHeading.hidden = true
   topbarHeading.textContent = ''
+  activeCommitSha = null
   viewMode = 'working'
   appRoot.classList.add('has-empty-state')
   emptyState.textContent =
@@ -283,6 +288,7 @@ async function renderCommitList(): Promise<void> {
   sidebarRoot.classList.remove('has-back')
   topbarHeading.hidden = true
   topbarHeading.textContent = ''
+  activeCommitSha = null
   syncCommitAvailability(snapshot ?? { repoState: 'error', totals: { files: 0, added: 0, removed: 0 }, files: [], generatedAt: Date.now() })
   const result = await window.api.getCommitHistory()
   if (!result.ok || !result.commits) {
@@ -345,6 +351,7 @@ async function openCommitDiff(sha: string): Promise<void> {
     return
   }
 
+  activeCommitSha = sha
   viewMode = 'commit-diff'
   applySnapshot(result.snapshot)
 }
