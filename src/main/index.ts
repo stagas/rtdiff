@@ -268,7 +268,7 @@ type is one of:
 scope is optional and should be abstract (not file names).
 Do not explain lockfile-only changes.
 Keep the message concise. You may add an optional body after an empty line.
-Use normal single spacing between words. Do not collapse words together and do not add extra spaces.`
+Use proper spacing between words and punctuation.`
             },
             {
               role: 'user',
