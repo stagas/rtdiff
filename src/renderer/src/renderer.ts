@@ -26,7 +26,15 @@ interface FileView {
   contentHost: HTMLElement
 }
 
+interface FileRenderCacheEntry {
+  key: string
+  originalTokens: ShikiTokenLine[]
+  modifiedTokens: ShikiTokenLine[]
+  hunks: DiffHunk[]
+}
+
 const fileViews = new Map<string, FileView>()
+const fileRenderCache = new Map<string, FileRenderCacheEntry>()
 let layoutMode: LayoutMode = 'side-by-side'
 let snapshot: DiffSnapshot | null = null
 let activePath: string | null = null
@@ -186,7 +194,7 @@ async function boot(): Promise<void> {
 
   window.api.onSnapshot((nextSnapshot) => {
     latestWorkingSnapshot = nextSnapshot
-    if (viewMode === 'commit-diff' && nextSnapshot.files.length === 0) return
+    if (viewMode === 'commit-diff') return
     applySnapshot(nextSnapshot)
   })
 }
@@ -204,10 +212,6 @@ function applySnapshot(nextSnapshot: DiffSnapshot): void {
 
   emptyState.hidden = true
   appRoot.classList.remove('has-empty-state')
-  if (nextSnapshot.files.length > 0) {
-    activeCommitSha = null
-    viewMode = 'working'
-  }
   backButton.hidden = !(viewMode === 'commit-diff' && Boolean(activeCommitSha))
   sidebarRoot.classList.toggle('has-back', !backButton.hidden)
 
@@ -216,6 +220,7 @@ function applySnapshot(nextSnapshot: DiffSnapshot): void {
     if (!incomingPaths.has(path)) {
       disposeView(view)
       fileViews.delete(path)
+      fileRenderCache.delete(path)
     }
   }
 
@@ -444,20 +449,38 @@ function updateSection(view: FileView, file: DiffFile): void {
 
   if (file.isBinary) {
     view.contentHost.innerHTML = '<div class="binary-placeholder">Binary file changes cannot be rendered as text diff.</div>'
+    fileRenderCache.delete(file.path)
     return
   }
 
+  const renderData = getFileRenderData(file)
+  const hunkNodes = renderData.hunks.map((hunk) =>
+    renderHunk(hunk, renderData.originalTokens, renderData.modifiedTokens, layoutMode)
+  )
+  view.contentHost.replaceChildren(...hunkNodes)
+}
+
+function getFileRenderData(file: DiffFile): FileRenderCacheEntry {
   const language = detectLanguage(file.path)
+  const key = `${language}\u0000${file.originalText}\u0001${file.modifiedText}`
+  const cached = fileRenderCache.get(file.path)
+  if (cached && cached.key === key) {
+    return cached
+  }
+
   const originalLines = splitLines(file.originalText)
   const modifiedLines = splitLines(file.modifiedText)
   const rows = buildRows(originalLines, modifiedLines)
-  const hunks = buildHunks(rows, 3)
+  const hunks = buildHunks(rows, 3).sort((a, b) => getHunkSortLine(a) - getHunkSortLine(b))
 
-  const originalTokens = tokenizeLines(file.originalText, language)
-  const modifiedTokens = tokenizeLines(file.modifiedText, language)
-  const orderedHunks = [...hunks].sort((a, b) => getHunkSortLine(a) - getHunkSortLine(b))
-  const hunkNodes = orderedHunks.map((hunk) => renderHunk(hunk, originalTokens, modifiedTokens, layoutMode))
-  view.contentHost.replaceChildren(...hunkNodes)
+  const entry: FileRenderCacheEntry = {
+    key,
+    originalTokens: tokenizeLines(file.originalText, language),
+    modifiedTokens: tokenizeLines(file.modifiedText, language),
+    hunks
+  }
+  fileRenderCache.set(file.path, entry)
+  return entry
 }
 
 function getHunkSortLine(hunk: DiffHunk): number {
