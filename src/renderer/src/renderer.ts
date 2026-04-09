@@ -404,7 +404,7 @@ function updateTopbarControls(nextSnapshot: DiffSnapshot): void {
 }
 
 function renderCommitListItem(commit: CommitListItem): string {
-  const dateLabel = commit.committedAt ? new Date(commit.committedAt).toLocaleString() : ''
+  const dateLabel = commit.committedAt ? formatRelativeTime(commit.committedAt) : ''
   return `
     <button class="commit-list-item" data-commit-sha="${escapeHtml(commit.sha)}" type="button">
       <span class="commit-main">
@@ -978,6 +978,46 @@ function detectLanguage(path: string): string {
   if (lower.endsWith('.yaml') || lower.endsWith('.yml')) return 'yaml'
   if (lower.endsWith('.sh')) return 'bash'
   return 'plaintext'
+}
+
+function formatRelativeTime(input: string): string {
+  const then = new Date(input).getTime()
+  if (!Number.isFinite(then)) return input
+
+  const now = Date.now()
+  const diffMs = Math.max(0, now - then)
+
+  const minute = 60 * 1000
+  const hour = 60 * minute
+  const day = 24 * hour
+  const week = 7 * day
+  const month = 30 * day
+  const year = 365 * day
+
+  if (diffMs < minute) return 'just now'
+  if (diffMs < hour) {
+    const n = Math.floor(diffMs / minute)
+    return `${n} minute${n === 1 ? '' : 's'} ago`
+  }
+  if (diffMs < day) {
+    const n = Math.floor(diffMs / hour)
+    return `${n} hour${n === 1 ? '' : 's'} ago`
+  }
+  if (diffMs < week) {
+    const n = Math.floor(diffMs / day)
+    return n === 1 ? 'yesterday' : `${n} days ago`
+  }
+  if (diffMs < month) {
+    const n = Math.floor(diffMs / week)
+    return n === 1 ? 'last week' : `${n} weeks ago`
+  }
+  if (diffMs < year) {
+    const n = Math.floor(diffMs / month)
+    return n === 1 ? 'last month' : `${n} months ago`
+  }
+
+  const n = Math.floor(diffMs / year)
+  return n === 1 ? 'last year' : `${n} years ago`
 }
 
 function escapeHtml(value: string): string {
