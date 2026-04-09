@@ -1,9 +1,10 @@
-import { app, shell, BrowserWindow, ipcMain, WebContents } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, WebContents, screen } from 'electron'
 import { dirname, extname, join, resolve } from 'node:path'
 import { access, readFile, stat } from 'node:fs/promises'
 import { constants } from 'node:fs'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
+import { open } from 'lmdb'
 import chokidar, { FSWatcher } from 'chokidar'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -16,6 +17,7 @@ const DIFF_SUBSCRIBE_CHANNEL = 'diff:subscribe'
 const DIFF_GET_SNAPSHOT_CHANNEL = 'diff:getSnapshot'
 const DIFF_COMMIT_CHANNEL = 'diff:commit'
 const DIFF_GENERATE_COMMIT_MESSAGE_CHANNEL = 'diff:generateCommitMessage'
+const WINDOW_STATE_KEY = 'window:main'
 
 const BINARY_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.pdf', '.zip', '.gz'])
 
@@ -23,6 +25,93 @@ interface StatusFile {
   path: string
   originalPath?: string
   status: DiffFile['status']
+}
+
+interface WindowState {
+  x?: number
+  y?: number
+  width: number
+  height: number
+  isMaximized?: boolean
+  isFullScreen?: boolean
+}
+
+let windowStateDb: ReturnType<typeof open<WindowState>> | null = null
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value)
+}
+
+function isValidWindowState(state: unknown): state is WindowState {
+  if (!state || typeof state !== 'object') return false
+  const candidate = state as Partial<WindowState>
+  if (!isFiniteNumber(candidate.width) || !isFiniteNumber(candidate.height)) return false
+  if (candidate.x !== undefined && !isFiniteNumber(candidate.x)) return false
+  if (candidate.y !== undefined && !isFiniteNumber(candidate.y)) return false
+  return true
+}
+
+function getDefaultWindowState(): WindowState {
+  return { width: 1400, height: 900 }
+}
+
+function getSafeWindowState(state: WindowState): WindowState {
+  const width = Math.max(640, Math.round(state.width))
+  const height = Math.max(680, Math.round(state.height))
+  const hasPosition = isFiniteNumber(state.x) && isFiniteNumber(state.y)
+
+  if (!hasPosition) {
+    return { ...state, width, height, x: undefined, y: undefined }
+  }
+
+  const x = Math.round(state.x!)
+  const y = Math.round(state.y!)
+  const target = { x, y, width, height }
+  const visibleOnAnyDisplay = screen.getAllDisplays().some((display) => {
+    const area = display.workArea
+    return (
+      target.x < area.x + area.width &&
+      target.x + target.width > area.x &&
+      target.y < area.y + area.height &&
+      target.y + target.height > area.y
+    )
+  })
+
+  if (visibleOnAnyDisplay) {
+    return { ...state, x, y, width, height }
+  }
+
+  return { ...state, width, height, x: undefined, y: undefined }
+}
+
+function loadWindowState(): WindowState {
+  if (!windowStateDb) {
+    return getDefaultWindowState()
+  }
+  const saved = windowStateDb.get(WINDOW_STATE_KEY)
+  if (!isValidWindowState(saved)) {
+    return getDefaultWindowState()
+  }
+
+  return getSafeWindowState(saved)
+}
+
+function saveWindowState(mainWindow: BrowserWindow, options?: { sync?: boolean }): void {
+  if (!windowStateDb) return
+  const bounds = mainWindow.getNormalBounds()
+  const nextState: WindowState = {
+    x: bounds.x,
+    y: bounds.y,
+    width: bounds.width,
+    height: bounds.height,
+    isMaximized: mainWindow.isMaximized(),
+    isFullScreen: mainWindow.isFullScreen()
+  }
+  if (options?.sync) {
+    windowStateDb.putSync(WINDOW_STATE_KEY, nextState)
+    return
+  }
+  void windowStateDb.put(WINDOW_STATE_KEY, nextState)
 }
 
 class DiffService {
@@ -592,9 +681,12 @@ Keep the message concise. You may add an optional body after an empty line.`
 let diffService: DiffService | null = null
 
 function createWindow(): void {
+  const windowState = loadWindowState()
   const mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 900,
+    width: windowState.width,
+    height: windowState.height,
+    ...(isFiniteNumber(windowState.x) ? { x: windowState.x } : {}),
+    ...(isFiniteNumber(windowState.y) ? { y: windowState.y } : {}),
     minWidth: 640,
     minHeight: 680,
     ...(process.platform === 'darwin'
@@ -610,8 +702,22 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => {
+    if (windowState.isMaximized) {
+      mainWindow.maximize()
+    }
+    if (windowState.isFullScreen) {
+      mainWindow.setFullScreen(true)
+    }
     mainWindow.show()
   })
+
+  mainWindow.on('move', () => saveWindowState(mainWindow))
+  mainWindow.on('resize', () => saveWindowState(mainWindow))
+  mainWindow.on('maximize', () => saveWindowState(mainWindow))
+  mainWindow.on('unmaximize', () => saveWindowState(mainWindow))
+  mainWindow.on('enter-full-screen', () => saveWindowState(mainWindow))
+  mainWindow.on('leave-full-screen', () => saveWindowState(mainWindow))
+  mainWindow.on('close', () => saveWindowState(mainWindow, { sync: true }))
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
@@ -626,6 +732,10 @@ function createWindow(): void {
 }
 
 app.whenReady().then(async () => {
+  windowStateDb = open<WindowState>({
+    path: join(app.getPath('userData'), 'state.lmdb')
+  })
+
   electronApp.setAppUserModelId('com.electron')
 
   app.on('browser-window-created', (_, window) => {
@@ -680,7 +790,12 @@ app.whenReady().then(async () => {
 })
 
 app.on('before-quit', () => {
+  for (const window of BrowserWindow.getAllWindows()) {
+    saveWindowState(window, { sync: true })
+  }
   diffService?.dispose()
+  windowStateDb?.close()
+  windowStateDb = null
 })
 
 app.on('window-all-closed', () => {

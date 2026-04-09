@@ -26,6 +26,7 @@
     "@shikijs/monaco": "^4.0.2",
     "chokidar": "^5.0.0",
     "electron-updater": "^6.3.9",
+    "lmdb": "^3.5.3",
     "monaco-editor": "^0.55.1",
     "shiki": "^4.0.2"
   },
