@@ -352,14 +352,19 @@ async function openCommitDiff(sha: string): Promise<void> {
 function updateTopbarHeading(nextSnapshot: DiffSnapshot): void {
   const message = nextSnapshot.message?.trim() ?? ''
   if (viewMode === 'commit-diff' && message) {
+    const firstSpace = message.indexOf(' ')
+    const shortSha = firstSpace > 0 ? message.slice(0, firstSpace) : message
+    const subject = firstSpace > 0 ? message.slice(firstSpace + 1).trim() : ''
     topbarHeading.hidden = false
-    topbarHeading.textContent = message
+    topbarHeading.innerHTML = subject
+      ? `<span class="topbar-sha">${escapeHtml(shortSha)}</span><span class="topbar-dot" aria-hidden="true">·</span><span class="topbar-subject">${escapeHtml(subject)}</span>`
+      : `<span class="topbar-sha">${escapeHtml(shortSha)}</span>`
     sidebarRoot.classList.add('has-heading')
     return
   }
 
   topbarHeading.hidden = true
-  topbarHeading.textContent = ''
+  topbarHeading.innerHTML = ''
   sidebarRoot.classList.remove('has-heading')
 }
 
