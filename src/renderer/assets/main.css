@@ -31,15 +31,7 @@ body {
   background: var(--bg);
   color: var(--text);
   overflow: hidden;
-  font-family:
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    Ubuntu,
-    'Helvetica Neue',
-    Arial,
-    sans-serif;
+  font-family: system-ui, sans-serif;
 }
 
 .layout {
@@ -463,7 +455,7 @@ body {
   background: var(--panel-elev-2);
 }
 
-.diff-section + .diff-section {
+.diff-section+.diff-section {
   border-top: 1px solid var(--separator);
 }
 
@@ -497,7 +489,7 @@ body {
   min-width: 0;
 }
 
-.diff-hunk + .diff-hunk {
+.diff-hunk+.diff-hunk {
   border-top: 1px solid var(--separator);
 }
 
@@ -508,7 +500,7 @@ body {
 
 .diff-table {
   display: grid;
-  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Menlo, Consolas, monospace;
+  font-family: monospace;
   font-size: 12px;
   line-height: 1.25;
 }
@@ -578,7 +570,7 @@ body {
 .line-marker,
 .line-no {
   color: var(--text-soft);
-  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Menlo, Consolas, monospace;
+  font-family: monospace;
   font-size: 11px;
   line-height: 1.1;
   padding: 0 8px;
