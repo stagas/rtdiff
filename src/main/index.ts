@@ -8,7 +8,7 @@ import { open } from 'lmdb'
 import chokidar, { FSWatcher } from 'chokidar'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import type { DiffFile, DiffSnapshot } from '../shared/diff'
+import type { CommitListItem, DiffFile, DiffSnapshot } from '../shared/diff'
 
 const execFileAsync = promisify(execFile)
 
@@ -17,6 +17,8 @@ const DIFF_SUBSCRIBE_CHANNEL = 'diff:subscribe'
 const DIFF_GET_SNAPSHOT_CHANNEL = 'diff:getSnapshot'
 const DIFF_COMMIT_CHANNEL = 'diff:commit'
 const DIFF_GENERATE_COMMIT_MESSAGE_CHANNEL = 'diff:generateCommitMessage'
+const DIFF_GET_COMMIT_HISTORY_CHANNEL = 'diff:getCommitHistory'
+const DIFF_GET_COMMIT_SNAPSHOT_CHANNEL = 'diff:getCommitSnapshot'
 const WINDOW_STATE_KEY = 'window:main'
 
 const BINARY_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.pdf', '.zip', '.gz'])
@@ -25,6 +27,12 @@ interface StatusFile {
   path: string
   originalPath?: string
   status: DiffFile['status']
+}
+
+interface CommitStatusFile {
+  path: string
+  originalPath?: string
+  status: Exclude<DiffFile['status'], '?'>
 }
 
 interface WindowState {
@@ -237,6 +245,81 @@ Keep the message concise. You may add an optional body after an empty line.`
       return { ok: true, message }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to generate commit message.'
+      return { ok: false, error: message }
+    }
+  }
+
+  async getCommitHistory(limit = 80): Promise<{ ok: boolean; commits?: CommitListItem[]; error?: string }> {
+    const repoRoot = this.snapshot.repoRoot ?? (await this.findNearestRepoRoot(this.startDir))
+    if (!repoRoot) {
+      return { ok: false, error: 'Not inside a git repository.' }
+    }
+
+    try {
+      const { stdout } = await execFileAsync('git', [
+        '-C',
+        repoRoot,
+        'log',
+        '--max-count',
+        String(limit),
+        '--date=iso-strict',
+        '--pretty=format:%H%x1f%h%x1f%s%x1f%an%x1f%ad%x1e',
+        '--numstat'
+      ])
+
+      const commits = this.parseCommitHistory(stdout)
+      return { ok: true, commits }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to read commit history.'
+      return { ok: false, error: message }
+    }
+  }
+
+  async getCommitSnapshot(sha: string): Promise<{ ok: boolean; snapshot?: DiffSnapshot; error?: string }> {
+    const targetSha = sha.trim()
+    if (!targetSha) return { ok: false, error: 'Commit sha is required.' }
+
+    const repoRoot = this.snapshot.repoRoot ?? (await this.findNearestRepoRoot(this.startDir))
+    if (!repoRoot) {
+      return { ok: false, error: 'Not inside a git repository.' }
+    }
+
+    try {
+      const [branchName, commitInfo, parentSha, files] = await Promise.all([
+        this.getBranchName(repoRoot),
+        this.getCommitInfo(repoRoot, targetSha),
+        this.getParentSha(repoRoot, targetSha),
+        this.getCommitStatusFiles(repoRoot, targetSha)
+      ])
+
+      const diffFiles = await Promise.all(
+        files.map((file) => this.buildCommitDiffFile(repoRoot, targetSha, parentSha, file))
+      )
+
+      let totalAdded = 0
+      let totalRemoved = 0
+      for (const file of diffFiles) {
+        totalAdded += file.added
+        totalRemoved += file.removed
+      }
+
+      const snapshot: DiffSnapshot = {
+        repoState: 'ok',
+        repoRoot,
+        branchName: `${branchName} • ${commitInfo.shortSha} ${commitInfo.subject}`,
+        message: `Commit ${commitInfo.shortSha} by ${commitInfo.authorName} on ${commitInfo.committedAt}`,
+        totals: {
+          files: diffFiles.length,
+          added: totalAdded,
+          removed: totalRemoved
+        },
+        files: diffFiles,
+        generatedAt: Date.now()
+      }
+
+      return { ok: true, snapshot }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to read commit diff.'
       return { ok: false, error: message }
     }
   }
@@ -530,6 +613,182 @@ Keep the message concise. You may add an optional body after an empty line.`
     }
   }
 
+  private parseCommitHistory(logOutput: string): CommitListItem[] {
+    const records = logOutput.split('\x1e').map((record) => record.trim()).filter(Boolean)
+    const commits: CommitListItem[] = []
+
+    for (const record of records) {
+      const lines = record.split('\n').filter(Boolean)
+      if (!lines.length) continue
+
+      const [sha, shortSha, subject, authorName, committedAt] = lines[0].split('\x1f')
+      if (!sha || !shortSha) continue
+
+      let added = 0
+      let removed = 0
+      let files = 0
+      for (let i = 1; i < lines.length; i += 1) {
+        const parts = lines[i].split('\t')
+        if (parts.length < 3) continue
+        const [addedRaw, removedRaw] = parts
+        files += 1
+        if (addedRaw !== '-') {
+          added += Number.parseInt(addedRaw, 10) || 0
+        }
+        if (removedRaw !== '-') {
+          removed += Number.parseInt(removedRaw, 10) || 0
+        }
+      }
+
+      commits.push({
+        sha,
+        shortSha,
+        subject: subject ?? '',
+        authorName: authorName ?? '',
+        committedAt: committedAt ?? '',
+        added,
+        removed,
+        files
+      })
+    }
+
+    return commits
+  }
+
+  private async getCommitInfo(
+    repoRoot: string,
+    sha: string
+  ): Promise<{ shortSha: string; subject: string; authorName: string; committedAt: string }> {
+    const { stdout } = await execFileAsync('git', [
+      '-C',
+      repoRoot,
+      'show',
+      '-s',
+      '--date=iso-strict',
+      '--format=%h%x1f%s%x1f%an%x1f%ad',
+      sha
+    ])
+
+    const [shortSha, subject, authorName, committedAt] = stdout.trim().split('\x1f')
+    return {
+      shortSha: shortSha ?? sha.slice(0, 7),
+      subject: subject ?? '',
+      authorName: authorName ?? '',
+      committedAt: committedAt ?? ''
+    }
+  }
+
+  private async getParentSha(repoRoot: string, sha: string): Promise<string | null> {
+    const { stdout } = await execFileAsync('git', ['-C', repoRoot, 'rev-list', '--parents', '-n', '1', sha])
+    const tokens = stdout.trim().split(/\s+/).filter(Boolean)
+    return tokens.length > 1 ? tokens[1] : null
+  }
+
+  private async getCommitStatusFiles(repoRoot: string, sha: string): Promise<CommitStatusFile[]> {
+    const { stdout } = await execFileAsync('git', ['-C', repoRoot, 'show', '--name-status', '--format=', sha])
+    const lines = stdout.split('\n').filter(Boolean)
+    const files: CommitStatusFile[] = []
+
+    for (const line of lines) {
+      const fields = line.split('\t')
+      if (!fields.length) continue
+      const statusRaw = fields[0]
+      const status = statusRaw[0]
+      if (status === 'A' && fields[1]) files.push({ status: 'A', path: fields[1] })
+      else if (status === 'D' && fields[1]) files.push({ status: 'D', path: fields[1] })
+      else if (status === 'M' && fields[1]) files.push({ status: 'M', path: fields[1] })
+      else if ((status === 'R' || status === 'C') && fields[1] && fields[2]) {
+        files.push({ status: status === 'R' ? 'R' : 'C', originalPath: fields[1], path: fields[2] })
+      }
+    }
+
+    return files
+  }
+
+  private async buildCommitDiffFile(
+    repoRoot: string,
+    sha: string,
+    parentSha: string | null,
+    statusFile: CommitStatusFile
+  ): Promise<DiffFile> {
+    const originalPath = statusFile.originalPath ?? statusFile.path
+    const [numStat, originalTextResult, modifiedTextResult] = await Promise.all([
+      this.getCommitNumStat(repoRoot, sha, statusFile),
+      this.getCommitOriginalText(repoRoot, parentSha, originalPath, statusFile.status),
+      this.getCommitModifiedText(repoRoot, sha, statusFile.path, statusFile.status)
+    ])
+
+    const isBinary = numStat.binary || originalTextResult.binary || modifiedTextResult.binary
+
+    return {
+      path: statusFile.path,
+      originalPath: statusFile.originalPath,
+      status: statusFile.status,
+      added: numStat.added,
+      removed: numStat.removed,
+      originalText: isBinary ? '' : originalTextResult.text,
+      modifiedText: isBinary ? '' : modifiedTextResult.text,
+      isBinary
+    }
+  }
+
+  private async getCommitNumStat(
+    repoRoot: string,
+    sha: string,
+    file: CommitStatusFile
+  ): Promise<{ added: number; removed: number; binary: boolean }> {
+    try {
+      const { stdout } = await execFileAsync('git', ['-C', repoRoot, 'show', '--numstat', '--format=', sha, '--', file.path])
+      const line = stdout.trim().split('\n').find(Boolean)
+      if (!line) return { added: 0, removed: 0, binary: false }
+      const [addedRaw, removedRaw] = line.split('\t')
+      if (addedRaw === '-' || removedRaw === '-') return { added: 0, removed: 0, binary: true }
+      return {
+        added: Number.parseInt(addedRaw, 10) || 0,
+        removed: Number.parseInt(removedRaw, 10) || 0,
+        binary: false
+      }
+    } catch {
+      return { added: 0, removed: 0, binary: false }
+    }
+  }
+
+  private async getCommitOriginalText(
+    repoRoot: string,
+    parentSha: string | null,
+    filePath: string,
+    status: CommitStatusFile['status']
+  ): Promise<{ text: string; binary: boolean }> {
+    if (status === 'A' || !parentSha) return { text: '', binary: false }
+    try {
+      const { stdout } = await execFileAsync('git', ['-C', repoRoot, 'show', `${parentSha}:${filePath}`], {
+        encoding: 'utf8',
+        maxBuffer: 12 * 1024 * 1024
+      })
+      return { text: stdout, binary: this.hasBinaryHint(filePath, stdout) }
+    } catch {
+      return { text: '', binary: false }
+    }
+  }
+
+  private async getCommitModifiedText(
+    repoRoot: string,
+    sha: string,
+    filePath: string,
+    status: CommitStatusFile['status']
+  ): Promise<{ text: string; binary: boolean }> {
+    if (status === 'D') return { text: '', binary: false }
+    try {
+      const { stdout } = await execFileAsync('git', ['-C', repoRoot, 'show', `${sha}:${filePath}`], {
+        encoding: 'utf8',
+        maxBuffer: 12 * 1024 * 1024
+      })
+      return { text: stdout, binary: this.hasBinaryHint(filePath, stdout) }
+    } catch {
+      return { text: '', binary: false }
+    }
+  }
+
   private toDiffStatus(input: string): DiffFile['status'] {
     if (input === 'A') return 'A'
     if (input === 'D') return 'D'
@@ -776,6 +1035,23 @@ app.whenReady().then(async () => {
       return { ok: false, error: 'Diff service unavailable' }
     }
     return diffService.generateCommitMessage()
+  })
+
+  ipcMain.handle(DIFF_GET_COMMIT_HISTORY_CHANNEL, async () => {
+    if (!diffService) {
+      return { ok: false, error: 'Diff service unavailable' }
+    }
+    return diffService.getCommitHistory()
+  })
+
+  ipcMain.handle(DIFF_GET_COMMIT_SNAPSHOT_CHANNEL, async (_event, sha: unknown) => {
+    if (!diffService) {
+      return { ok: false, error: 'Diff service unavailable' }
+    }
+    if (typeof sha !== 'string') {
+      return { ok: false, error: 'Invalid commit sha.' }
+    }
+    return diffService.getCommitSnapshot(sha)
   })
 
   ipcMain.on(DIFF_SUBSCRIBE_CHANNEL, (event) => {

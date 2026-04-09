@@ -28,3 +28,14 @@ export interface DiffSnapshot {
   files: DiffFile[]
   generatedAt: number
 }
+
+export interface CommitListItem {
+  sha: string
+  shortSha: string
+  subject: string
+  authorName: string
+  committedAt: string
+  added: number
+  removed: number
+  files: number
+}

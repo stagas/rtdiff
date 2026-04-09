@@ -1,5 +1,5 @@
 import { createHighlighter, createJavaScriptRegexEngine, type Highlighter } from 'shiki'
-import type { DiffFile, DiffSnapshot, LayoutMode } from '../../shared/diff'
+import type { CommitListItem, DiffFile, DiffSnapshot, LayoutMode } from '../../shared/diff'
 
 type RowKind = 'context' | 'added' | 'removed' | 'modified'
 
@@ -31,6 +31,8 @@ let layoutMode: LayoutMode = 'side-by-side'
 let snapshot: DiffSnapshot | null = null
 let activePath: string | null = null
 let highlighter: Highlighter | null = null
+let viewMode: 'working' | 'commit-list' | 'commit-diff' = 'working'
+let latestWorkingSnapshot: DiffSnapshot | null = null
 
 const appRoot = document.getElementById('app') as HTMLElement
 const sidebarList = document.getElementById('file-list') as HTMLElement
@@ -41,6 +43,7 @@ const sectionsRoot = document.getElementById('diff-sections') as HTMLElement
 const emptyState = document.getElementById('empty-state') as HTMLElement
 const modeButton = document.getElementById('layout-toggle') as HTMLButtonElement
 const commitButton = document.getElementById('commit-button') as HTMLButtonElement
+const backButton = document.getElementById('back-button') as HTMLButtonElement
 const sectionsScroller = document.getElementById('diff-scroller') as HTMLElement
 const commitModal = document.getElementById('commit-modal') as HTMLElement
 const commitBackdrop = document.getElementById('commit-backdrop') as HTMLElement
@@ -64,6 +67,15 @@ function init(): void {
   })
 
   commitButton.addEventListener('click', openCommitModal)
+  backButton.addEventListener('click', () => {
+    viewMode = 'commit-list'
+    if (latestWorkingSnapshot) {
+      if (latestWorkingSnapshot.files.length > 0) {
+        viewMode = 'working'
+      }
+      applySnapshot(latestWorkingSnapshot)
+    }
+  })
   commitBackdrop.addEventListener('click', closeCommitModal)
   commitCancel.addEventListener('click', closeCommitModal)
   commitGenerate.addEventListener('click', () => {
@@ -165,9 +177,12 @@ async function boot(): Promise<void> {
   })
 
   const firstSnapshot = await window.api.getSnapshot()
+  latestWorkingSnapshot = firstSnapshot
   applySnapshot(firstSnapshot)
 
   window.api.onSnapshot((nextSnapshot) => {
+    latestWorkingSnapshot = nextSnapshot
+    if (viewMode === 'commit-diff') return
     applySnapshot(nextSnapshot)
   })
 }
@@ -184,6 +199,10 @@ function applySnapshot(nextSnapshot: DiffSnapshot): void {
 
   emptyState.hidden = true
   appRoot.classList.remove('has-empty-state')
+  backButton.hidden = viewMode !== 'commit-diff'
+  if (viewMode !== 'commit-diff' && nextSnapshot.files.length > 0) {
+    viewMode = 'working'
+  }
 
   const incomingPaths = new Set(nextSnapshot.files.map((file) => file.path))
   for (const [path, view] of fileViews) {
@@ -202,10 +221,14 @@ function applySnapshot(nextSnapshot: DiffSnapshot): void {
   }
 
   if (!nextSnapshot.files.length) {
-    emptyState.hidden = false
-    const branch = nextSnapshot.branchName ?? 'unknown'
-    emptyState.innerHTML = `On branch <strong>${escapeHtml(branch)}</strong>, working tree clean`
-    appRoot.classList.add('has-empty-state')
+    if (viewMode === 'commit-diff') {
+      emptyState.hidden = false
+      emptyState.textContent = 'No file changes in this commit.'
+      appRoot.classList.add('has-empty-state')
+    } else {
+      viewMode = 'commit-list'
+      void renderCommitList()
+    }
   }
 
   if (activePath && !incomingPaths.has(activePath)) {
@@ -226,7 +249,7 @@ function updateSummary(nextSnapshot: DiffSnapshot): void {
 }
 
 function syncCommitAvailability(nextSnapshot: DiffSnapshot): void {
-  const canCommit = nextSnapshot.repoState === 'ok' && nextSnapshot.files.length > 0
+  const canCommit = viewMode === 'working' && nextSnapshot.repoState === 'ok' && nextSnapshot.files.length > 0
   commitButton.disabled = !canCommit
 }
 
@@ -239,11 +262,81 @@ function renderNotReady(nextSnapshot: DiffSnapshot): void {
   sectionsRoot.replaceChildren()
 
   emptyState.hidden = false
+  backButton.hidden = true
+  viewMode = 'working'
   appRoot.classList.add('has-empty-state')
   emptyState.textContent =
     nextSnapshot.repoState === 'not_in_repo'
       ? 'Not inside a git repository. Move into a git project or initialize one.'
       : nextSnapshot.message ?? 'Failed to read git state.'
+}
+
+async function renderCommitList(): Promise<void> {
+  backButton.hidden = true
+  syncCommitAvailability(snapshot ?? { repoState: 'error', totals: { files: 0, added: 0, removed: 0 }, files: [], generatedAt: Date.now() })
+  const result = await window.api.getCommitHistory()
+  if (!result.ok || !result.commits) {
+    emptyState.hidden = false
+    emptyState.textContent = result.error ?? 'Failed to load commit history.'
+    appRoot.classList.add('has-empty-state')
+    return
+  }
+
+  const commits = result.commits
+  if (!commits.length) {
+    emptyState.hidden = false
+    emptyState.textContent = 'No commits yet.'
+    appRoot.classList.add('has-empty-state')
+    return
+  }
+
+  emptyState.hidden = false
+  appRoot.classList.add('has-empty-state')
+  emptyState.innerHTML = `
+    <div class="commit-list">
+      ${commits.map((commit) => renderCommitListItem(commit)).join('')}
+    </div>
+  `
+
+  for (const button of emptyState.querySelectorAll<HTMLButtonElement>('[data-commit-sha]')) {
+    button.addEventListener('click', () => {
+      const sha = button.dataset.commitSha
+      if (!sha) return
+      void openCommitDiff(sha)
+    })
+  }
+}
+
+function renderCommitListItem(commit: CommitListItem): string {
+  const dateLabel = commit.committedAt ? new Date(commit.committedAt).toLocaleString() : ''
+  return `
+    <button class="commit-list-item" data-commit-sha="${escapeHtml(commit.sha)}" type="button">
+      <span class="commit-main">
+        <span class="commit-subject">${escapeHtml(commit.subject || '(no subject)')}</span>
+        <span class="commit-meta">${escapeHtml(commit.shortSha)} • ${escapeHtml(commit.authorName)}${dateLabel ? ` • ${escapeHtml(dateLabel)}` : ''}</span>
+      </span>
+      <span class="commit-delta">
+        <span class="added">+${commit.added}</span>
+        <span class="removed">-${commit.removed}</span>
+        <span>${commit.files} file${commit.files === 1 ? '' : 's'}</span>
+      </span>
+    </button>
+  `
+}
+
+async function openCommitDiff(sha: string): Promise<void> {
+  emptyState.hidden = false
+  appRoot.classList.add('has-empty-state')
+  emptyState.textContent = 'Loading commit diff...'
+
+  const result = await window.api.getCommitSnapshot(sha)
+  if (!result.ok || !result.snapshot) {
+    emptyState.textContent = result.error ?? 'Failed to load commit diff.'
+    return
+  }
+
+  viewMode = 'commit-diff'
+  applySnapshot(result.snapshot)
 }
 
 function upsertView(file: DiffFile): FileView {
