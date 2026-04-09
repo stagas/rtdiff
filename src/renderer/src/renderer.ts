@@ -847,6 +847,7 @@ function statusClass(status: DiffFile['status']): string {
 function setActivePath(path: string): void {
   activePath = path
   syncActiveStyles()
+  scrollActiveTabIntoView()
 }
 
 function syncActiveStyles(): void {
@@ -855,6 +856,25 @@ function syncActiveStyles(): void {
     view.sidebarItem.classList.toggle('active', isActive)
     view.section.classList.toggle('active', isActive)
   }
+}
+
+function scrollActiveTabIntoView(): void {
+  if (!activePath) return
+  const view = fileViews.get(activePath)
+  if (!view) return
+
+  const listRect = sidebarList.getBoundingClientRect()
+  const itemRect = view.sidebarItem.getBoundingClientRect()
+
+  const leftOverflow = itemRect.left < listRect.left
+  const rightOverflow = itemRect.right > listRect.right
+  if (!leftOverflow && !rightOverflow) return
+
+  view.sidebarItem.scrollIntoView({
+    block: 'nearest',
+    inline: 'nearest',
+    behavior: 'smooth'
+  })
 }
 
 function onScrollActiveSection(): void {
