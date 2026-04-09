@@ -35,9 +35,23 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: npm ci --include=optional --ignore-scripts
+
+      - name: Install Linux packaging dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libarchive-tools rpm
+          sudo apt-get install -y libfuse2t64 || sudo apt-get install -y libfuse2
+
+      - name: Ensure electron-builder binaries are executable (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          chmod +x node_modules/app-builder-bin/linux/x64/app-builder || true
+          chmod +x node_modules/7zip-bin/linux/x64/7za || true
 
       - name: Build and publish
         shell: bash
@@ -45,11 +59,11 @@ jobs:
           case "${{ matrix.os }}" in
             macos-latest)
               bun run build
-              bunx electron-builder --mac --publish always
+              CSC_IDENTITY_AUTO_DISCOVERY=false bunx electron-builder --mac --publish always
               ;;
             ubuntu-latest)
               bun run build
-              bunx electron-builder --linux --publish always
+              bunx electron-builder --linux AppImage deb --publish always
               ;;
             windows-latest)
               bun run build
@@ -57,9 +71,7 @@ jobs:
               ;;
           esac
         env:
-          # Optional signing/notarization secrets
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          # Optional notarization secrets
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
