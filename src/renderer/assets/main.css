@@ -88,6 +88,10 @@ body {
   color: var(--text);
   border-radius: 8px;
   padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
   font-size: 11px;
   cursor: pointer;
   -webkit-app-region: no-drag;
@@ -274,15 +278,20 @@ body {
   grid-column: 1 / -1;
   grid-row: 2;
   min-height: 24px;
-  padding: 0 10px 6px;
+  padding: 4px 10px 6px;
   font-size: 12px;
   color: var(--text);
   border-top: 1px solid var(--panel-border);
   display: flex;
   align-items: center;
+  gap: 0;
+  line-height: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-app-region: no-drag;
 }
 
 .topbar-heading[hidden] {
@@ -290,19 +299,37 @@ body {
 }
 
 .topbar-sha {
+  display: inline-flex;
+  align-items: center;
   font-size: 10px;
+  line-height: 1;
   color: var(--text-soft);
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-app-region: no-drag;
 }
 
 .topbar-dot {
+  display: inline-flex;
+  align-items: center;
   font-size: 11px;
+  line-height: 1;
   color: var(--text-soft);
   margin: 0 6px;
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-app-region: no-drag;
 }
 
 .topbar-subject {
+  display: inline-flex;
+  align-items: center;
   font-size: 12px;
+  line-height: 1;
   color: var(--text);
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-app-region: no-drag;
 }
 
 .file-list::-webkit-scrollbar {
